@@ -1,1 +1,1205 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小五數學：分數乘法</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+TC:wght@400;700;900&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background-color: #f0fdf4; 
+            background-image: radial-gradient(#bbf7d0 3px, transparent 3px);
+            background-size: 30px 30px;
+            overscroll-behavior-y: contain; 
+            touch-action: manipulation;
+        }
+        .math-font {
+            font-family: 'Nunito', 'Fredoka One', monospace;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
 
+        /* 獨立分數輸入框樣式 */
+        .fraction-input {
+            transition: all 0.2s;
+            background-color: #f8fafc;
+        }
+        .fraction-input.active-box {
+            border-color: #f59e0b !important; 
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+            background-color: #fffbeb;
+            transform: scale(1.05);
+        }
+        .fraction-input.correct {
+            border-color: #22c55e !important;
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .fraction-input.incorrect {
+            border-color: #ef4444 !important;
+            background-color: #fee2e2;
+            color: #b91c1c;
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* 自訂鍵盤按鈕樣式 (響應式大小) */
+        .num-btn {
+            background-color: #ffffff;
+            border: 2px solid #bae6fd;
+            border-bottom: 3px solid #7dd3fc;
+            border-radius: 8px;
+            height: 40px;
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #0284c7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.1s;
+            touch-action: manipulation; 
+        }
+        @media (min-width: 640px) {
+            .num-btn {
+                height: 54px;
+                font-size: 1.5rem;
+                border-bottom-width: 4px;
+                border-radius: 12px;
+            }
+        }
+        @media (min-width: 768px) {
+            .num-btn {
+                height: 64px;
+                font-size: 2rem;
+                border-radius: 14px;
+            }
+        }
+        
+        .num-btn:active {
+            border-bottom-width: 2px !important;
+            transform: translateY(2px);
+            background-color: #e0f2fe;
+        }
+        
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        
+        /* 頁籤顏色 */
+        .tab-mode1 { border-color: #3b82f6; background-color: #3b82f6; color: white; }
+        .tab-mode1-inactive { border-color: #bfdbfe; background-color: #eff6ff; color: #60a5fa; }
+        
+        .tab-mode2 { border-color: #22c55e; background-color: #22c55e; color: white; }
+        .tab-mode2-inactive { border-color: #bbf7d0; background-color: #f0fdf4; color: #4ade80; }
+        
+        .tab-mode3 { border-color: #f59e0b; background-color: #f59e0b; color: white; }
+        .tab-mode3-inactive { border-color: #fde68a; background-color: #fffbeb; color: #fbbf24; }
+
+        /* 教學用約簡斜線樣式 */
+        .cancel-num {
+            position: relative;
+            display: inline-block;
+            color: #94a3b8;
+        }
+        .cancel-num::after {
+            content: '';
+            position: absolute;
+            left: -2px;
+            right: -2px;
+            top: 50%;
+            height: 2.5px;
+            background-color: #ef4444;
+            transform: rotate(-28deg);
+        }
+    </style>
+</head>
+<body class="min-h-screen py-4 sm:py-8 px-2 sm:px-4 text-gray-800">
+
+    <div class="max-w-5xl mx-auto space-y-4 sm:space-y-8">
+        
+        <!-- Header -->
+        <div class="text-center bg-white p-3 sm:p-6 rounded-[1rem] sm:rounded-[2rem] shadow-[0_4px_0_#4ade80] sm:shadow-[0_8px_0_#4ade80] border-2 sm:border-4 border-green-400">
+            <h1 class="text-2xl sm:text-5xl font-black text-green-600 mb-3 sm:mb-6 tracking-wide math-font drop-shadow-sm">✖️ 分數乘法樂園 ✖️</h1>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 bg-green-50 p-2 sm:p-4 rounded-xl sm:rounded-3xl border-2 border-dashed border-green-300 inline-flex w-full max-w-3xl mx-auto shadow-sm">
+                <img src="https://pmath-lab.github.io/p5area/CATT.png" alt="貓貓老師" class="w-16 h-16 sm:w-24 sm:h-24 object-contain drop-shadow-md animate-float" onerror="this.src='https://placehold.co/96x96/bbf7d0/166534?text=Teacher'">
+                <div class="text-sm sm:text-xl text-gray-700 text-left leading-relaxed">
+                    <span class="font-black text-green-700 text-base sm:text-2xl bg-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg sm:rounded-xl shadow-sm border border-green-200 inline-block mb-1.5 sm:mb-2">貓老師口訣：</span>
+                    <div class="flex items-start font-bold">
+                        <span class="shrink-0">「</span>
+                        <div class="flex flex-col space-y-0.5 sm:space-y-1">
+                            <div>分數乘法轉分數</div>
+                            <div class="text-red-500 font-black">乘號要轉假分數</div>
+                            <div class="text-blue-600 font-black">分子要乘返分子</div>
+                            <div class="text-blue-600 font-black">分母要乘返分母<span class="text-gray-700 font-bold">」</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主內容區塊 -->
+        <div class="relative">
+            <!-- 選擇模式 Tabs -->
+            <div class="flex items-end justify-center gap-1 sm:gap-2 px-1 sm:px-2">
+                <button id="tabMode1" onclick="switchMode('mode1')" class="px-1 sm:px-2 md:px-6 py-2 sm:py-3 md:py-4 rounded-t-xl sm:rounded-t-3xl font-black text-xs sm:text-sm md:text-xl border-2 sm:border-4 transition-all cursor-pointer flex items-center justify-center relative z-30 tab-mode1">
+                    整數 × 真分數
+                </button>
+                <button id="tabMode2" onclick="switchMode('mode2')" class="px-1 sm:px-2 md:px-6 py-1.5 sm:py-2 md:py-3 rounded-t-xl sm:rounded-t-3xl font-black text-xs sm:text-sm md:text-xl border-2 sm:border-4 transition-all cursor-pointer flex items-center justify-center relative z-10 hover:opacity-90 tab-mode2-inactive">
+                    真分數 × 真分數
+                </button>
+                <button id="tabMode3" onclick="switchMode('mode3')" class="px-1 sm:px-2 md:px-6 py-1.5 sm:py-2 md:py-3 rounded-t-xl sm:rounded-t-3xl font-black text-xs sm:text-sm md:text-xl border-2 sm:border-4 transition-all cursor-pointer flex items-center justify-center relative z-10 hover:opacity-90 tab-mode3-inactive">
+                    真分數 × 帶分數
+                </button>
+            </div>
+
+            <!-- 主內容框 -->
+            <div id="mainContentBox" class="bg-white p-2 sm:p-4 md:p-8 rounded-[1rem] sm:rounded-[2rem] shadow-[0_4px_0_#3b82f6] sm:shadow-[0_8px_0_#3b82f6] border-2 sm:border-4 border-[#3b82f6] relative z-20 -mt-[2px] sm:-mt-[4px] transition-all duration-300">
+
+                <!-- 教學區域 (可收合) -->
+                <div id="tutorialSection" class="mb-4 sm:mb-8 bg-blue-50 p-3 sm:p-5 md:p-6 rounded-xl sm:rounded-3xl border-2 sm:border-4 border-blue-200 shadow-sm transition-colors duration-300">
+                    <div id="tutorialHeader" onclick="toggleTutorial()" class="flex justify-between items-center border-b-2 sm:border-b-4 border-dashed border-blue-200 pb-2 sm:pb-3 mb-3 sm:mb-4 cursor-pointer select-none">
+                        <h2 id="tutorialTitle" class="text-lg sm:text-xl md:text-2xl font-black text-blue-700 flex items-center gap-2">
+                            <span class="text-2xl sm:text-3xl">📖</span> 學習重點
+                        </h2>
+                        <button id="tutorialToggleBtn" type="button" class="text-xs sm:text-sm font-black bg-white/80 hover:bg-white text-gray-700 px-2.5 py-1 rounded-lg border border-gray-300 shadow-sm transition-all">
+                            收合 ▲
+                        </button>
+                    </div>
+                    <div id="tutorialBody">
+                        <div class="text-center">
+                            <p class="text-base sm:text-xl md:text-2xl font-black text-gray-800 tracking-wide my-2 sm:my-3" id="formulaDisplay"></p>
+                        </div>
+                        <div id="exampleDisplay"></div>
+                    </div>
+                </div>
+
+                <hr class="my-4 sm:my-8 border-t-2 sm:border-t-4 border-dashed border-gray-200">
+
+                <!-- 練習區域 -->
+                <div>
+                    <!-- 練習標題與登入/得分列 -->
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-3 sm:mb-6">
+                        <h2 class="text-lg sm:text-2xl md:text-3xl font-black text-gray-800 flex items-center gap-1.5 sm:gap-2">
+                            <span class="text-2xl sm:text-4xl">✏️</span> 動手計一計
+                        </h2>
+
+                        <div class="flex flex-wrap items-center gap-1.5 sm:gap-3 ml-auto">
+                            <!-- 已登入學生狀態 -->
+                            <div id="userStatusBadge" class="hidden items-center gap-1.5 bg-indigo-50 text-indigo-800 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border-2 border-indigo-200 text-xs sm:text-sm font-black shadow-sm flex">
+                                <span>🎓</span>
+                                <span id="userNameDisplay"></span>
+                                <span id="syncIndicator" class="hidden text-indigo-500 animate-spin">⏳</span>
+                            </div>
+
+                            <!-- 登入按鈕 -->
+                            <button id="loginBtn" onclick="openLoginModal()" class="bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl font-black text-xs sm:text-base shadow-[0_3px_0_#4338ca] active:translate-y-[3px] active:shadow-none transition-all border-2 border-indigo-600 cursor-pointer">
+                                🔑 登入
+                            </button>
+
+                            <!-- 連勝徽章 -->
+                            <div id="comboBadge" class="hidden bg-orange-500 text-white px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl font-black text-xs sm:text-sm shadow-sm animate-bounce">
+                                🔥 連勝 +10
+                            </div>
+
+                            <!-- 得分顯示 -->
+                            <div class="bg-amber-300 text-amber-900 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl font-black text-sm sm:text-xl shadow-[0_3px_0_#d97706] sm:shadow-[0_4px_0_#d97706] border-2 border-amber-400 transform -rotate-2">
+                                得分：<span id="scoreDisplay" class="text-lg sm:text-3xl">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提示橫幅 -->
+                    <div id="instructionBanner" class="bg-indigo-50 text-indigo-800 p-2 sm:p-3 rounded-xl sm:rounded-2xl text-center font-black mb-4 sm:mb-6 text-xs sm:text-base border-2 sm:border-4 border-indigo-200 shadow-sm">
+                        👉 點擊空格選擇位置並用鍵盤輸入。可按 ⊗ 增加乘數。未達最簡答案會自動換行！
+                    </div>
+
+                    <!-- 左計數、右鍵盤並排區域 -->
+                    <div class="flex flex-row items-start justify-center gap-2 sm:gap-6 w-full">
+
+                        <!-- 左邊：題目與作答步驟區 -->
+                        <div class="flex-1 sm:flex-initial min-w-0 sm:min-w-[300px] md:min-w-[360px] bg-white p-2 sm:p-5 rounded-2xl sm:rounded-[2rem] border-2 sm:border-4 border-gray-200 shadow-[0_4px_0_#cbd5e1] sm:shadow-[0_8px_0_#cbd5e1] flex flex-col items-start">
+                            <!-- 題目顯示區 -->
+                            <div id="questionDisplay" class="w-full min-h-[60px] sm:min-h-[110px] flex items-center justify-start gap-1 sm:gap-2 text-2xl sm:text-5xl font-black text-gray-800 math-font mb-2 sm:mb-4 bg-gray-50 rounded-xl sm:rounded-2xl border-2 border-dashed border-gray-300 px-3 sm:px-6 py-2.5 sm:py-4">
+                                <!-- 題目由 JS 動態生成 -->
+                            </div>
+
+                            <!-- 步驟輸入區 -->
+                            <div id="answer-area" class="w-full flex flex-col items-start">
+                                <!-- 輸入方格由 JS 動態生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 右邊：3x4 自訂數字鍵盤 -->
+                        <div id="numpadArea" class="w-[132px] sm:w-[210px] md:w-[250px] shrink-0 sm:sticky sm:top-4 flex flex-col items-center gap-2 sm:gap-3">
+                            <div class="grid grid-cols-3 gap-1.5 sm:gap-2.5 w-full bg-[#574b80] p-1.5 sm:p-3 rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-[#3f3563] shadow-[0_4px_0_#3f3563] sm:shadow-[0_6px_0_#3f3563]">
+                                <button onclick="handleNumpad('1')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">1</button>
+                                <button onclick="handleNumpad('2')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">2</button>
+                                <button onclick="handleNumpad('3')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">3</button>
+
+                                <button onclick="handleNumpad('4')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">4</button>
+                                <button onclick="handleNumpad('5')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">5</button>
+                                <button onclick="handleNumpad('6')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">6</button>
+
+                                <button onclick="handleNumpad('7')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">7</button>
+                                <button onclick="handleNumpad('8')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">8</button>
+                                <button onclick="handleNumpad('9')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">9</button>
+
+                                <button onclick="handleNumpad('Clear')" class="num-btn !bg-red-500 !border-red-400 !border-b-red-700 !text-white hover:!bg-red-400 !text-xs sm:!text-base md:!text-xl">清除</button>
+                                <button onclick="handleNumpad('0')" class="num-btn math-font !bg-[#483d6b] !border-[#6b5e99] !border-b-[#32294d] !text-white hover:!bg-[#52467a]">0</button>
+                                <button id="submitBtn" onclick="checkAnswer()" class="num-btn !bg-green-500 !border-green-400 !border-b-green-700 !text-white hover:!bg-green-400 !text-xs sm:!text-base md:!text-xl">確定</button>
+                            </div>
+
+                            <!-- 下一題按鈕 -->
+                            <button onclick="generateQuestion()" id="nextBtn" class="hidden w-full py-2 sm:py-3 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 text-sm sm:text-xl font-black rounded-xl sm:rounded-2xl shadow-[0_4px_0_#d97706] active:translate-y-[4px] active:shadow-none transition-all border-2 border-yellow-500 flex justify-center items-center cursor-pointer">
+                                下一題 ➡️
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- 回饋訊息區 -->
+                    <div id="feedbackMessage" class="mt-4 min-h-[44px] text-center text-sm sm:text-lg font-black transition-all opacity-0 flex items-center justify-center w-full"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 學生登入淡入視窗 -->
+    <div id="loginModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300" onclick="if(event.target === this) closeLoginModal()">
+        <div id="loginModalContent" class="bg-white w-full max-w-sm rounded-3xl border-4 border-indigo-400 shadow-[0_8px_0_#6366f1] p-6 transform scale-95 transition-transform duration-300">
+            <div class="flex justify-between items-center mb-4 border-b-2 border-dashed border-indigo-100 pb-3">
+                <h3 class="text-2xl font-black text-indigo-700 flex items-center gap-2">🔑 學生登入</h3>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-black leading-none cursor-pointer">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="loginClass" class="block text-sm font-black text-gray-700 mb-1">班別</label>
+                    <select id="loginClass" class="w-full p-3 rounded-xl border-2 border-indigo-200 font-bold text-gray-800 bg-indigo-50/40 focus:outline-none focus:border-indigo-500">
+                        <option value="5A">5A</option>
+                        <option value="5B">5B</option>
+                        <option value="5C">5C</option>
+                        <option value="5D">5D</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="loginNo" class="block text-sm font-black text-gray-700 mb-1">班號</label>
+                    <select id="loginNo" class="w-full p-3 rounded-xl border-2 border-indigo-200 font-bold text-gray-800 bg-indigo-50/40 focus:outline-none focus:border-indigo-500">
+                        <!-- 1-35 由 JS 動態生成 -->
+                    </select>
+                </div>
+
+                <div>
+                    <label for="loginPass" class="block text-sm font-black text-gray-700 mb-1">密碼</label>
+                    <input id="loginPass" type="password" placeholder="請輸入登入密碼" onkeydown="if(event.key==='Enter') submitLogin()" class="w-full p-3 rounded-xl border-2 border-indigo-200 font-bold text-gray-800 bg-indigo-50/40 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div id="loginErrorMsg" class="hidden text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl p-2.5 text-center"></div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeLoginModal()" class="flex-1 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-black border-2 border-gray-300 transition-all cursor-pointer">
+                        取消
+                    </button>
+                    <button id="confirmLoginBtn" onclick="submitLogin()" class="flex-1 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 text-white font-black shadow-[0_4px_0_#4338ca] active:translate-y-[4px] active:shadow-none border-2 border-indigo-600 transition-all cursor-pointer">
+                        登入 ✨
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbznxfHsuesPngDn822-ngZtGogZ3qreq4Q4hYrwfTfTafmyb4bLgy-ti14rJHrVeLc6/exec";
+
+        let currentMode = 'mode1'; 
+        let expectedAns = { whole: 0, num: 0, den: 1 };
+        let score = 0;
+        let consecutiveCorrect = 0;
+        let currentQuestionHasError = false;
+        let studentData = null;
+        let isTutorialOpen = true;
+
+        let stepsConfig = [1];
+        let inputValues = {};
+        let activeBoxId = 'inp-s0-t0-num';
+        let completedSteps = []; 
+
+        const mainContentBox = document.getElementById('mainContentBox');
+        const tutorialSection = document.getElementById('tutorialSection');
+        const tutorialHeader = document.getElementById('tutorialHeader');
+        const tutorialTitle = document.getElementById('tutorialTitle');
+        const tutorialBody = document.getElementById('tutorialBody');
+        const tutorialToggleBtn = document.getElementById('tutorialToggleBtn');
+        const formulaDisplay = document.getElementById('formulaDisplay');
+        const exampleDisplay = document.getElementById('exampleDisplay');
+        const questionDisplay = document.getElementById('questionDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const feedbackMessage = document.getElementById('feedbackMessage');
+        const submitBtn = document.getElementById('submitBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // 切換教學區域收合/展開
+        function toggleTutorial() {
+            isTutorialOpen = !isTutorialOpen;
+            if (isTutorialOpen) {
+                tutorialBody.classList.remove('hidden');
+                tutorialToggleBtn.innerText = '收合 ▲';
+            } else {
+                tutorialBody.classList.add('hidden');
+                tutorialToggleBtn.innerText = '展開 ▼';
+            }
+        }
+
+        // 初始化班號下拉選單 (1-35)
+        const loginNoSelect = document.getElementById('loginNo');
+        for (let i = 1; i <= 35; i++) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = i + ' 號';
+            loginNoSelect.appendChild(opt);
+        }
+
+        // 開啟登入視窗 (淡入效果)
+        function openLoginModal() {
+            const modal = document.getElementById('loginModal');
+            const content = document.getElementById('loginModalContent');
+            document.getElementById('loginErrorMsg').classList.add('hidden');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+                document.getElementById('loginPass').focus();
+            }, 10);
+        }
+
+        // 關閉登入視窗 (淡出效果)
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            const content = document.getElementById('loginModalContent');
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // 提交登入請求至 GAS
+        async function submitLogin() {
+            const cls = document.getElementById('loginClass').value;
+            const no = document.getElementById('loginNo').value;
+            const pass = document.getElementById('loginPass').value.trim();
+            const errBox = document.getElementById('loginErrorMsg');
+            const btn = document.getElementById('confirmLoginBtn');
+
+            if (!pass) {
+                errBox.innerText = "⚠️ 請輸入密碼！";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            errBox.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerText = "登入中...";
+            btn.classList.add('opacity-70');
+
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'loginMath',
+                        cls: cls,
+                        no: no,
+                        pass: pass
+                    })
+                });
+                const res = await response.json();
+
+                if (res.success) {
+                    studentData = res.student;
+                    score = (studentData.learningScore !== undefined) ? Number(studentData.learningScore) : (Number(studentData.money) || 0);
+                    scoreDisplay.innerText = score;
+                    consecutiveCorrect = 0;
+
+                    document.getElementById('userNameDisplay').innerText = `${studentData.className} (${studentData.classNo}) ${studentData.name}`;
+                    document.getElementById('userStatusBadge').classList.remove('hidden');
+                    document.getElementById('loginBtn').innerText = "切換帳號";
+                    
+                    closeLoginModal();
+                    document.getElementById('loginPass').value = '';
+                } else {
+                    errBox.innerText = "❌ " + (res.message || "帳號或密碼錯誤！");
+                    errBox.classList.remove('hidden');
+                }
+            } catch (error) {
+                errBox.innerText = "⚠️ 網絡連線錯誤，請稍後再試！";
+                errBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "登入 ✨";
+                btn.classList.remove('opacity-70');
+            }
+        }
+
+        // 傳送答題與加分紀錄到 GAS
+        async function recordStudyProgress(addedScore, mode, attemptsDelta, errorsDelta) {
+            if (!studentData) return;
+            const syncInd = document.getElementById('syncIndicator');
+            syncInd.classList.remove('hidden');
+
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'updateMathStudy',
+                        rowIndex: studentData.rowIndex,
+                        cls: studentData.className,
+                        no: studentData.classNo,
+                        name: studentData.name,
+                        addedScore: addedScore,
+                        mode: mode,
+                        attemptsDelta: attemptsDelta,
+                        errorsDelta: errorsDelta
+                    })
+                });
+            } catch (e) {
+                console.error("未能同步學習紀錄", e);
+            } finally {
+                setTimeout(() => syncInd.classList.add('hidden'), 600);
+            }
+        }
+
+        function setActiveBox(id) {
+            document.querySelectorAll('.fraction-input').forEach(el => el.classList.remove('active-box'));
+            activeBoxId = id;
+            if(id) {
+                let box = document.getElementById(id);
+                if (box) box.classList.add('active-box');
+            }
+        }
+
+        function saveState() {
+            document.querySelectorAll('.fraction-input').forEach(el => {
+                inputValues[el.id] = el.innerText;
+            });
+        }
+        
+        function restoreState() {
+            document.querySelectorAll('.fraction-input').forEach(el => {
+                if (inputValues[el.id] !== undefined) {
+                    el.innerText = inputValues[el.id];
+                }
+            });
+            if (activeBoxId && document.getElementById(activeBoxId)) {
+                setActiveBox(activeBoxId);
+            } else {
+                let s = stepsConfig.length - 1;
+                let t = stepsConfig[s] - 1;
+                setActiveBox(`inp-s${s}-t${t}-num`);
+            }
+        }
+
+        function addTerm() {
+            saveState();
+            let s = stepsConfig.length - 1;
+            stepsConfig[s]++;
+            let t = stepsConfig[s] - 1;
+            activeBoxId = `inp-s${s}-t${t}-num`; 
+            renderAnswerArea();
+            restoreState();
+        }
+
+        function addStep(focusPart = 'num') {
+            saveState();
+            stepsConfig.push(1);
+            let s = stepsConfig.length - 1;
+            activeBoxId = `inp-s${s}-t0-${focusPart}`; 
+            renderAnswerArea();
+            restoreState();
+        }
+
+        function renderAnswerArea() {
+            let html = '';
+            for (let s = 0; s < stepsConfig.length; s++) {
+                html += `<div class="step-row flex flex-nowrap items-center justify-start gap-1 sm:gap-2 w-full mt-1 sm:mt-2 overflow-x-auto pb-1">`;
+                html += `<span class="text-xl sm:text-3xl md:text-4xl font-black text-gray-600 mr-0 sm:mr-2 shrink-0">=</span>`;
+                for (let t = 0; t < stepsConfig[s]; t++) {
+                    if (t > 0) {
+                        html += `<span class="text-xl sm:text-3xl md:text-4xl font-black text-gray-600 mx-0.5 sm:mx-2 shrink-0">×</span>`;
+                    }
+
+                    if (s === stepsConfig.length - 1) {
+                        html += `
+                        <div class="flex items-center gap-0.5 sm:gap-1 md:gap-2 shrink-0" id="term-container-${s}-${t}">
+                            <div id="inp-s${s}-t${t}-whole" class="fraction-input w-5 h-8 sm:w-10 sm:h-[4.5rem] md:w-12 md:h-[5.5rem] border-2 sm:border-4 border-gray-300 rounded sm:rounded-xl text-base sm:text-3xl md:text-4xl flex items-center justify-center cursor-pointer font-black text-gray-700 bg-white shrink-0" onclick="setActiveBox('inp-s${s}-t${t}-whole')"></div>
+                            <div class="flex flex-col items-center gap-0.5 sm:gap-1 md:gap-2 shrink-0">
+                                <div id="inp-s${s}-t${t}-num" class="fraction-input w-6 h-6 sm:w-8 sm:h-10 md:w-10 md:h-12 border-2 sm:border-4 border-gray-300 rounded sm:rounded-xl text-sm sm:text-xl md:text-2xl flex items-center justify-center cursor-pointer font-black text-gray-700 bg-white shrink-0" onclick="setActiveBox('inp-s${s}-t${t}-num')"></div>
+                                <div class="w-6 sm:w-10 md:w-12 h-0.5 md:h-1.5 bg-gray-800 rounded-full shrink-0"></div>
+                                <div id="inp-s${s}-t${t}-den" class="fraction-input w-6 h-6 sm:w-8 sm:h-10 md:w-10 md:h-12 border-2 sm:border-4 border-gray-300 rounded sm:rounded-xl text-sm sm:text-xl md:text-2xl flex items-center justify-center cursor-pointer font-black text-gray-700 bg-white shrink-0" onclick="setActiveBox('inp-s${s}-t${t}-den')"></div>
+                            </div>
+                        </div>
+                        `;
+                    } else {
+                        let wStr = inputValues[`inp-s${s}-t${t}-whole`] || '';
+                        let nStr = inputValues[`inp-s${s}-t${t}-num`] || '';
+                        let dStr = inputValues[`inp-s${s}-t${t}-den`] || '';
+                        
+                        if (wStr === '' && nStr === '' && dStr === '') {
+                            continue;
+                        }
+
+                        let w = wStr === '' ? 0 : parseInt(wStr);
+                        let n = nStr === '' ? 0 : parseInt(nStr);
+                        let d = dStr === '' ? 1 : parseInt(dStr);
+
+                        let termHtml = '';
+                        if (n === 0 && w > 0) {
+                            termHtml = `<span class="text-2xl sm:text-4xl md:text-5xl font-black text-gray-700 mx-1 sm:mx-2 shrink-0">${w}</span>`;
+                        } else {
+                            termHtml = renderFractionHTML(n, d, w, false);
+                        }
+                        html += `<div class="flex items-center px-0 sm:px-2 shrink-0">${termHtml}</div>`;
+                    }
+                }
+                
+                if (s === stepsConfig.length - 1 && stepsConfig[s] < 2) {
+                    html += `<button onclick="addTerm()" class="ml-1 sm:ml-2 md:ml-3 rounded-full border-2 sm:border-[3px] border-gray-700 text-gray-700 w-5 h-5 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center text-sm sm:text-2xl md:text-3xl font-black hover:bg-gray-100 transition-all pb-0.5 sm:pb-1 leading-none shadow-sm shrink-0" title="加乘號">×</button>`;
+                }
+                html += `</div>`;
+            }
+            document.getElementById('answer-area').innerHTML = html;
+        }
+
+        function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
+        }
+
+        function renderFractionHTML(num, den, whole = 0, isInline = false) {
+            let wholeSize = isInline ? "text-base sm:text-xl md:text-2xl" : "text-xl sm:text-5xl md:text-6xl";
+            let fracSize = isInline ? "text-xs sm:text-base md:text-lg" : "text-sm sm:text-3xl md:text-4xl";
+            let borderWidth = isInline ? "2px" : "3px";
+
+            let html = `<span class="inline-flex items-center align-middle mx-0.5 sm:mx-1 whitespace-nowrap">`;
+            if (whole > 0) {
+                html += `<span class="${wholeSize} font-black mr-0.5 sm:mr-1">${whole}</span>`;
+            }
+            html += `
+                <span class="inline-flex flex-col items-center justify-center align-middle ${fracSize} font-black leading-none">
+                    <span class="px-0.5 sm:px-1 w-full text-center" style="border-bottom: ${borderWidth} solid currentColor; line-height: 1.15;">${num}</span>
+                    <span class="px-0.5 sm:px-1 w-full text-center" style="line-height: 1.15;">${den}</span>
+                </span>
+            `;
+            html += `</span>`;
+            return html;
+        }
+
+        // 教學專用分數條圖像 (4等分)
+        function renderQuarterBarSVG(shadedCount) {
+            let rects = '';
+            for (let i = 0; i < 4; i++) {
+                let fill = i < shadedCount ? '#e5c19e' : '#ffffff';
+                rects += `<rect x="${i * 22 + 1}" y="1" width="22" height="36" fill="${fill}" stroke="#1f2937" stroke-width="2"/>`;
+            }
+            return `<svg viewBox="0 0 90 38" class="w-20 sm:w-24 h-8 sm:h-10 drop-shadow-sm shrink-0">${rects}</svg>`;
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            const tab1 = document.getElementById('tabMode1');
+            const tab2 = document.getElementById('tabMode2');
+            const tab3 = document.getElementById('tabMode3');
+
+            const baseTabClass = "px-1 sm:px-2 md:px-6 rounded-t-xl sm:rounded-t-3xl font-black text-xs sm:text-sm md:text-xl border-2 sm:border-4 transition-all cursor-pointer flex items-center justify-center relative";
+            const activeTabClass = "py-2 sm:py-3 md:py-4 z-30"; 
+            const inactiveTabClass = "py-1.5 sm:py-2 md:py-3 z-10 hover:opacity-90";
+
+            tab1.className = `${baseTabClass} ${inactiveTabClass} tab-mode1-inactive`;
+            tab2.className = `${baseTabClass} ${inactiveTabClass} tab-mode2-inactive`;
+            tab3.className = `${baseTabClass} ${inactiveTabClass} tab-mode3-inactive`;
+
+            if (mode === 'mode1') {
+                tab1.className = `${baseTabClass} ${activeTabClass} tab-mode1`;
+                mainContentBox.className = "bg-white p-2 sm:p-4 md:p-8 rounded-[1rem] sm:rounded-[2rem] shadow-[0_4px_0_#3b82f6] sm:shadow-[0_8px_0_#3b82f6] border-2 sm:border-4 border-[#3b82f6] relative z-20 -mt-[2px] sm:-mt-[4px] transition-all duration-300";
+                tutorialSection.className = "mb-4 sm:mb-8 bg-blue-50 p-3 sm:p-5 md:p-6 rounded-xl sm:rounded-3xl border-2 sm:border-4 border-blue-200 shadow-sm transition-colors duration-300";
+                tutorialHeader.className = "flex justify-between items-center border-b-2 sm:border-b-4 border-dashed border-blue-200 pb-2 sm:pb-3 mb-3 sm:mb-4 cursor-pointer";
+                tutorialTitle.className = "text-lg sm:text-xl md:text-2xl font-black text-blue-700 flex items-center gap-2";
+
+                formulaDisplay.innerHTML = `<span class="text-blue-600">真分數 × 整數</span> ＝ <span class="bg-white px-2.5 sm:px-3 py-1 rounded-lg border-2 border-blue-200 inline-block mt-1 sm:mt-0">把整數寫成分母為 1 的分數，先約簡再相乘</span>`;
+
+                exampleDisplay.innerHTML = `
+                    <div class="mt-3 sm:mt-4 space-y-4">
+                        <!-- 原理卡片（圖一例子） -->
+                        <div class="bg-white p-3 sm:p-5 rounded-2xl border-2 border-blue-200 shadow-sm">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xl sm:text-2xl">🔍</span>
+                                <h3 class="text-base sm:text-xl font-black text-blue-800">原理解釋：為什麼整數只乘分子？</h3>
+                            </div>
+                            <div class="flex flex-col md:flex-row items-center justify-around gap-4 sm:gap-6">
+                                <!-- 左側：算式推導 -->
+                                <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-3 sm:p-4 w-full md:w-auto min-w-[210px] font-black text-gray-800 math-font space-y-2 text-base sm:text-lg">
+                                    <div class="flex items-center pl-5">
+                                        ${renderFractionHTML(1, 4, 0, true)} <span class="text-blue-600 mx-1">× 3</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="mr-2">=</span>
+                                        ${renderFractionHTML(1, 4, 0, true)} <span class="mx-0.5">+</span> ${renderFractionHTML(1, 4, 0, true)} <span class="mx-0.5">+</span> ${renderFractionHTML(1, 4, 0, true)}
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="mr-2">=</span>
+                                        ${renderFractionHTML('1 + 1 + 1', 4, 0, true)}
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="mr-2">=</span>
+                                        ${renderFractionHTML('1 <span class="text-blue-600">× 3</span>', 4, 0, true)}
+                                    </div>
+                                    <div class="flex items-center text-blue-700">
+                                        <span class="mr-2">=</span>
+                                        ${renderFractionHTML(3, 4, 0, true)}
+                                    </div>
+                                </div>
+
+                                <!-- 右側：分數條圖像（仿圖一） -->
+                                <div class="flex flex-col items-center w-full md:w-auto flex-1 max-w-md">
+                                    <div class="w-full bg-[#d9e8b5] p-3 sm:p-4 rounded-t-xl flex flex-wrap items-center justify-center gap-3 sm:gap-4 border border-[#c5d996]">
+                                        ${renderQuarterBarSVG(1)}
+                                        ${renderQuarterBarSVG(1)}
+                                        ${renderQuarterBarSVG(1)}
+                                    </div>
+                                    <div class="w-full bg-[#eef5db] p-3 sm:p-4 rounded-b-xl flex flex-col items-center justify-center border-x border-b border-[#c5d996] relative">
+                                        <div class="-mt-5 mb-2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-t-[12px] border-t-[#d9e8b5]"></div>
+                                        ${renderQuarterBarSVG(3)}
+                                        <p class="text-xs sm:text-sm font-bold text-gray-700 mt-2 text-center">
+                                            3 個 ${renderFractionHTML(1, 4, 0, true)} 合起來，就是 <strong class="text-blue-700">3 份</strong>（${renderFractionHTML(3, 4, 0, true)}），每一份的大小（分母 4）不變！
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 步驟卡片（3/8 × 6） -->
+                        <div class="bg-white p-3 sm:p-5 rounded-2xl border-2 border-blue-200 shadow-sm">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-xl sm:text-2xl">💡</span>
+                                <h3 class="text-base sm:text-xl font-black text-blue-800">真分數乘整數的步驟示範</h3>
+                            </div>
+                            <div class="space-y-2.5 text-left text-sm sm:text-base">
+                                <!-- 題目 -->
+                                <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2 font-black text-lg sm:text-2xl math-font text-gray-800">
+                                    <span class="text-xs sm:text-sm bg-blue-600 text-white px-2 py-0.5 rounded-md font-sans">例題</span>
+                                    ${renderFractionHTML(3, 8, 0, true)} <span class="mx-1">×</span> <span>6</span>
+                                </div>
+
+                                <!-- 步驟 1 -->
+                                <div class="bg-blue-50 border-l-4 border-blue-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                    <div class="font-black text-lg sm:text-xl math-font text-blue-900 min-w-[130px] flex items-center">
+                                        <span class="mr-1.5">=</span> ${renderFractionHTML(3, 8, 0, true)} <span class="mx-1">×</span> ${renderFractionHTML(6, '<span class="text-red-500">1</span>', 0, true)}
+                                    </div>
+                                    <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                        <span class="text-blue-700 font-black">1️⃣ 整數給予分母 1：</span>可提醒自己整數是乘向分子。
+                                    </div>
+                                </div>
+
+                                <!-- 步驟 2 -->
+                                <div class="bg-amber-50 border-l-4 border-amber-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                    <div class="font-black text-lg sm:text-xl math-font text-amber-900 min-w-[130px] flex items-center">
+                                        <span class="mr-1.5">=</span> ${renderFractionHTML(3, '<span class="text-red-600">4</span>', 0, true)} <span class="mx-1">×</span> ${renderFractionHTML('<span class="text-red-600">3</span>', 1, 0, true)}
+                                    </div>
+                                    <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                        <span class="text-amber-700 font-black">2️⃣ 先約簡（約數）：</span>用 <strong class="text-red-600">2、3、5、7</strong> 對分子及分母進行約簡（8 和 6 同除以 2）。
+                                    </div>
+                                </div>
+
+                                <!-- 步驟 3 -->
+                                <div class="bg-green-50 border-l-4 border-green-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                    <div class="font-black text-lg sm:text-xl math-font text-green-800 min-w-[130px] flex items-center">
+                                        <span class="mr-1.5">=</span> ${renderFractionHTML(9, 4, 0, true)} <span class="text-xs sm:text-sm text-gray-500 ml-1.5 font-sans">（或 ${renderFractionHTML(1, 4, 2, true)}）</span>
+                                    </div>
+                                    <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                        <span class="text-green-700 font-black">3️⃣ 相乘並檢查：</span>分子乘分子，分母乘分母，最後檢查是否最簡分數。
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (mode === 'mode2') {
+                tab2.className = `${baseTabClass} ${activeTabClass} tab-mode2`;
+                mainContentBox.className = "bg-white p-2 sm:p-4 md:p-8 rounded-[1rem] sm:rounded-[2rem] shadow-[0_4px_0_#22c55e] sm:shadow-[0_8px_0_#22c55e] border-2 sm:border-4 border-[#22c55e] relative z-20 -mt-[2px] sm:-mt-[4px] transition-all duration-300";
+                tutorialSection.className = "mb-4 sm:mb-8 bg-green-50 p-3 sm:p-5 md:p-6 rounded-xl sm:rounded-3xl border-2 sm:border-4 border-green-200 shadow-sm transition-colors duration-300";
+                tutorialHeader.className = "flex justify-between items-center border-b-2 sm:border-b-4 border-dashed border-green-200 pb-2 sm:pb-3 mb-3 sm:mb-4 cursor-pointer";
+                tutorialTitle.className = "text-lg sm:text-xl md:text-2xl font-black text-green-700 flex items-center gap-2";
+
+                formulaDisplay.innerHTML = `<span class="text-green-600">真分數 × 真分數</span> ＝ <span class="bg-white px-2.5 py-1 rounded-lg border-2 border-green-200 mx-1 inline-block">分子乘分子</span>，<span class="bg-white px-2.5 py-1 rounded-lg border-2 border-green-200 mx-1 inline-block">分母乘分母</span>`;
+
+                exampleDisplay.innerHTML = `
+                    <div class="mt-3 sm:mt-4 bg-white p-3 sm:p-5 rounded-2xl border-2 border-green-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xl sm:text-2xl">💡</span>
+                            <h3 class="text-base sm:text-xl font-black text-green-800">示範例題：先約簡，後計算</h3>
+                        </div>
+                        <div class="space-y-2.5 text-left text-sm sm:text-base">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2 font-black text-lg sm:text-2xl math-font text-gray-800">
+                                <span class="text-xs sm:text-sm bg-green-600 text-white px-2 py-0.5 rounded-md font-sans">例題</span>
+                                ${renderFractionHTML(3, 4, 0, true)} <span class="mx-1">×</span> ${renderFractionHTML(8, 9, 0, true)}
+                            </div>
+                            <div class="bg-amber-50 border-l-4 border-amber-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                <div class="font-black text-lg sm:text-xl math-font text-amber-900 min-w-[130px] flex items-center">
+                                    <span class="mr-1.5">=</span> ${renderFractionHTML('<span class="text-red-600">1</span>', '<span class="text-red-600">1</span>', 0, true)} <span class="mx-1">×</span> ${renderFractionHTML('<span class="text-red-600">2</span>', '<span class="text-red-600">3</span>', 0, true)}
+                                </div>
+                                <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                    <span class="text-amber-700 font-black">1️⃣ 先約簡：</span>用 2、3、5、7 交叉約簡（3 和 9 同除以 3；4 和 8 同除以 4）。
+                                </div>
+                            </div>
+                            <div class="bg-green-50 border-l-4 border-green-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                <div class="font-black text-lg sm:text-xl math-font text-green-800 min-w-[130px] flex items-center">
+                                    <span class="mr-1.5">=</span> ${renderFractionHTML(2, 3, 0, true)}
+                                </div>
+                                <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                    <span class="text-green-700 font-black">2️⃣ 相乘並檢查：</span>分子乘分子，分母乘分母，檢查是否最簡分數。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (mode === 'mode3') {
+                tab3.className = `${baseTabClass} ${activeTabClass} tab-mode3`;
+                mainContentBox.className = "bg-white p-2 sm:p-4 md:p-8 rounded-[1rem] sm:rounded-[2rem] shadow-[0_4px_0_#f59e0b] sm:shadow-[0_8px_0_#f59e0b] border-2 sm:border-4 border-[#f59e0b] relative z-20 -mt-[2px] sm:-mt-[4px] transition-all duration-300";
+                tutorialSection.className = "mb-4 sm:mb-8 bg-amber-50 p-3 sm:p-5 md:p-6 rounded-xl sm:rounded-3xl border-2 sm:border-4 border-amber-200 shadow-sm transition-colors duration-300";
+                tutorialHeader.className = "flex justify-between items-center border-b-2 sm:border-b-4 border-dashed border-amber-200 pb-2 sm:pb-3 mb-3 sm:mb-4 cursor-pointer";
+                tutorialTitle.className = "text-lg sm:text-xl md:text-2xl font-black text-amber-700 flex items-center gap-2";
+
+                formulaDisplay.innerHTML = `遇到帶分數，<strong class="text-red-600">必定要先化做假分數</strong>，然後約簡再相乘！`;
+
+                exampleDisplay.innerHTML = `
+                    <div class="mt-3 sm:mt-4 bg-white p-3 sm:p-5 rounded-2xl border-2 border-amber-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-xl sm:text-2xl">💡</span>
+                            <h3 class="text-base sm:text-xl font-black text-amber-800">示範例題：帶分數化假分數</h3>
+                        </div>
+                        <div class="space-y-2.5 text-left text-sm sm:text-base">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2 font-black text-lg sm:text-2xl math-font text-gray-800">
+                                <span class="text-xs sm:text-sm bg-amber-500 text-white px-2 py-0.5 rounded-md font-sans">例題</span>
+                                ${renderFractionHTML(2, 5, 0, true)} <span class="mx-1">×</span> ${renderFractionHTML(1, 4, 1, true)}
+                            </div>
+                            <div class="bg-red-50 border-l-4 border-red-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                <div class="font-black text-lg sm:text-xl math-font text-red-900 min-w-[130px] flex items-center">
+                                    <span class="mr-1.5">=</span> ${renderFractionHTML(2, 5, 0, true)} <span class="mx-1">×</span> ${renderFractionHTML('<span class="text-red-600">5</span>', 4, 0, true)}
+                                </div>
+                                <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                    <span class="text-red-700 font-black">1️⃣ 帶分數化假分數：</span>${renderFractionHTML(1, 4, 1, true)} ＝ ${renderFractionHTML('1×4+1', 4, 0, true)} ＝ ${renderFractionHTML(5, 4, 0, true)}。
+                                </div>
+                            </div>
+                            <div class="bg-amber-50 border-l-4 border-amber-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                <div class="font-black text-lg sm:text-xl math-font text-amber-900 min-w-[130px] flex items-center">
+                                    <span class="mr-1.5">=</span> ${renderFractionHTML('<span class="text-red-600">1</span>', '<span class="text-red-600">1</span>', 0, true)} <span class="mx-1">×</span> ${renderFractionHTML('<span class="text-red-600">1</span>', '<span class="text-red-600">2</span>', 0, true)}
+                                </div>
+                                <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                    <span class="text-amber-700 font-black">2️⃣ 先約簡：</span>2 和 4 同除以 2；5 和 5 同除以 5。
+                                </div>
+                            </div>
+                            <div class="bg-green-50 border-l-4 border-green-500 p-2.5 sm:p-3 rounded-r-xl flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                                <div class="font-black text-lg sm:text-xl math-font text-green-800 min-w-[130px] flex items-center">
+                                    <span class="mr-1.5">=</span> ${renderFractionHTML(1, 2, 0, true)}
+                                </div>
+                                <div class="text-gray-700 font-bold text-xs sm:text-base">
+                                    <span class="text-green-700 font-black">3️⃣ 相乘並檢查：</span>分子乘分子，分母乘分母，檢查是否最簡分數。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            stepsConfig = [1];
+            inputValues = {};
+            activeBoxId = 'inp-s0-t0-num';
+            completedSteps = [];
+            currentQuestionHasError = false;
+            
+            submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+            nextBtn.classList.add('hidden');
+            feedbackMessage.style.opacity = 0;
+
+            let finalN = 0;
+            let finalD = 1;
+            let htmlStr = "";
+            let qTerms = []; 
+
+            if (currentMode === 'mode1') {
+                let whole = Math.floor(Math.random() * 8) + 2; 
+                let den = Math.floor(Math.random() * 8) + 3;   
+                let num = Math.floor(Math.random() * (den - 1)) + 1; 
+                
+                finalN = whole * num;
+                finalD = den;
+                
+                if (Math.random() > 0.5) {
+                    htmlStr = `<span class="text-2xl sm:text-5xl md:text-6xl font-black mr-1 sm:mr-2">${whole}</span><span>×</span>${renderFractionHTML(num, den)}`;
+                    qTerms = [{w: whole, n: 0, d: 1}, {w: 0, n: num, d: den}];
+                } else {
+                    htmlStr = `${renderFractionHTML(num, den)}<span>×</span><span class="text-2xl sm:text-5xl md:text-6xl font-black ml-1 sm:ml-2">${whole}</span>`;
+                    qTerms = [{w: 0, n: num, d: den}, {w: whole, n: 0, d: 1}];
+                }
+                
+            } else if (currentMode === 'mode2') {
+                let den1 = Math.floor(Math.random() * 7) + 3; 
+                let num1 = Math.floor(Math.random() * (den1 - 1)) + 1;
+                let den2 = Math.floor(Math.random() * 7) + 3;
+                let num2 = Math.floor(Math.random() * (den2 - 1)) + 1;
+                
+                finalN = num1 * num2;
+                finalD = den1 * den2;
+                htmlStr = `${renderFractionHTML(num1, den1)}<span>×</span>${renderFractionHTML(num2, den2)}`;
+                qTerms = [{w: 0, n: num1, d: den1}, {w: 0, n: num2, d: den2}];
+                
+            } else if (currentMode === 'mode3') {
+                let den1 = Math.floor(Math.random() * 6) + 3; 
+                let num1 = Math.floor(Math.random() * (den1 - 1)) + 1;
+                
+                let whole2 = Math.floor(Math.random() * 3) + 1; 
+                let den2 = Math.floor(Math.random() * 6) + 3;
+                let num2 = Math.floor(Math.random() * (den2 - 1)) + 1;
+                
+                let improperN = whole2 * den2 + num2;
+                finalN = num1 * improperN;
+                finalD = den1 * den2;
+                
+                if (Math.random() > 0.5) {
+                    htmlStr = `${renderFractionHTML(num1, den1)}<span>×</span>${renderFractionHTML(num2, den2, whole2)}`;
+                    qTerms = [{w: 0, n: num1, d: den1}, {w: whole2, n: num2, d: den2}];
+                } else {
+                    htmlStr = `${renderFractionHTML(num2, den2, whole2)}<span>×</span>${renderFractionHTML(num1, den1)}`;
+                    qTerms = [{w: whole2, n: num2, d: den2}, {w: 0, n: num1, d: den1}];
+                }
+            }
+
+            questionDisplay.innerHTML = htmlStr;
+            completedSteps = [qTerms]; 
+            
+            let d = gcd(finalN, finalD);
+            let simpN = finalN / d;
+            let simpD = finalD / d;
+
+            expectedAns = {
+                whole: Math.floor(simpN / simpD),
+                num: simpN % simpD,
+                den: simpD
+            };
+            
+            renderAnswerArea();
+            restoreState();
+        }
+
+        function handleNumpad(key) {
+            if (!activeBoxId) return;
+            let box = document.getElementById(activeBoxId);
+            if (!box) return;
+            let currentVal = box.innerText;
+
+            if (key === 'Backspace' || key === 'Clear') {
+                box.innerText = currentVal.slice(0, -1); 
+            } else {
+                if (currentVal.length < 3) {
+                    box.innerText += key;
+                }
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('loginModal');
+            if (modal && !modal.classList.contains('hidden')) return;
+
+            const validKeys = ['0','1','2','3','4','5','6','7','8','9'];
+            if (validKeys.includes(e.key)) {
+                handleNumpad(e.key);
+            } else if (e.key === 'Backspace') {
+                e.preventDefault(); 
+                handleNumpad('Backspace');
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if(!nextBtn.classList.contains('hidden')) generateQuestion();
+                else checkAnswer();
+            }
+        });
+
+        function checkAnswer() {
+            let s = stepsConfig.length - 1;
+            
+            document.querySelectorAll('.fraction-input').forEach(el => {
+                el.style.animation = 'none';
+                el.offsetHeight; 
+                el.classList.remove('incorrect', 'correct');
+            });
+
+            let userTotalN = 1;
+            let userTotalD = 1;
+            let terms = [];
+            let activeTermsCount = 0; 
+
+            for (let t = 0; t < stepsConfig[s]; t++) {
+                let wBox = document.getElementById(`inp-s${s}-t${t}-whole`);
+                let nBox = document.getElementById(`inp-s${s}-t${t}-num`);
+                let dBox = document.getElementById(`inp-s${s}-t${t}-den`);
+
+                if (!wBox || !nBox || !dBox) return;
+
+                let wStr = wBox.innerText.trim();
+                let nStr = nBox.innerText.trim();
+                let dStr = dBox.innerText.trim();
+
+                let isEmpty = (wStr === '' && nStr === '' && dStr === '');
+                if (isEmpty) {
+                    terms.push({ isEmpty: true, wBox, nBox, dBox });
+                    continue;
+                }
+
+                activeTermsCount++;
+
+                let userW = wStr === '' ? 0 : parseInt(wStr);
+                let userN = nStr === '' ? 0 : parseInt(nStr);
+                let userD = dStr === '' ? 1 : parseInt(dStr);
+                
+                if (userD === 0) {
+                     feedbackMessage.innerHTML = `<span class="text-red-600 bg-red-100 border-2 border-red-300 rounded-xl p-1.5 sm:p-2 block w-full shadow-sm">分母不可以是 0 呀！🧐</span>`;
+                     feedbackMessage.style.opacity = 1;
+                     dBox.classList.add('incorrect');
+                     return;
+                }
+
+                userTotalN *= (userW * userD + userN);
+                userTotalD *= userD;
+
+                terms.push({ isEmpty: false, w: userW, n: userN, d: userD, wStr, nStr, dStr, wBox, nBox, dBox });
+            }
+
+            if (activeTermsCount === 0) {
+                 feedbackMessage.innerHTML = `<span class="text-amber-600 bg-amber-100 border-2 border-amber-300 rounded-xl p-1.5 sm:p-2 block w-full shadow-sm">請輸入答案！🧐</span>`;
+                 feedbackMessage.style.opacity = 1;
+                 return;
+            }
+            
+            let currentTermsMapped = terms.filter(t => !t.isEmpty).map(t => ({w: t.w, n: t.n, d: t.d}));
+            
+            let isDuplicate = false;
+            for (let step of completedSteps) {
+                if (step.length === currentTermsMapped.length) {
+                    let match = true;
+                    for (let i = 0; i < step.length; i++) {
+                        if (step[i].w !== currentTermsMapped[i].w || step[i].n !== currentTermsMapped[i].n || step[i].d !== currentTermsMapped[i].d) {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (match) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isDuplicate) {
+                feedbackMessage.innerHTML = `<span class="text-red-600 bg-red-100 border-2 border-red-300 rounded-xl p-1.5 sm:p-2 block w-full shadow-sm">照抄原題或重複步驟喇，請化簡或計算！🧐</span>`;
+                feedbackMessage.style.opacity = 1;
+                terms.forEach(t => {
+                    if (!t.isEmpty) {
+                        t.wBox.classList.add('incorrect');
+                        t.nBox.classList.add('incorrect');
+                        t.dBox.classList.add('incorrect');
+                    }
+                });
+                return;
+            }
+
+            let expectedTotalN = expectedAns.whole * expectedAns.den + expectedAns.num;
+            let expectedTotalD = expectedAns.den;
+
+            let isValueCorrect = (userTotalN * expectedTotalD === expectedTotalN * userTotalD);
+
+            if (isValueCorrect) {
+                let isFinalAnswer = false;
+                let isDenOneStep = false;
+                
+                let activeTerms = terms.filter(t => !t.isEmpty);
+                if (activeTerms.length === 1) {
+                    let term = activeTerms[0];
+                    let isMixedMatch = false;
+                    if (expectedAns.num === 0) {
+                        // 當答案為整數時，必須直接填寫整數（不能留有分母為 1 的分數形式）
+                        isMixedMatch = (term.w === expectedAns.whole && term.n === 0 && term.dStr === '');
+                    } else {
+                        isMixedMatch = (term.w === expectedAns.whole && term.n === expectedAns.num && term.d === expectedAns.den);
+                    }
+                    // 其他最簡假分數（分母大於 1）可以作為最終答案，但分母為 1（如 3/1）不可以
+                    let isImproperMatch = (expectedTotalD > 1 && term.w === 0 && term.n === expectedTotalN && term.d === expectedTotalD);
+
+                    if (expectedTotalD === 1 && term.d === 1 && term.n > 0) {
+                        isDenOneStep = true;
+                    }
+
+                    isFinalAnswer = isMixedMatch || isImproperMatch;
+                }
+
+                if (isFinalAnswer) {
+                    terms.forEach(t => {
+                        if (!t.isEmpty) {
+                            t.wBox.classList.add('correct');
+                            t.nBox.classList.add('correct');
+                            t.dBox.classList.add('correct');
+                        } else {
+                            t.wBox.parentElement.style.opacity = '0.3';
+                            t.wBox.parentElement.style.pointerEvents = 'none';
+                        }
+                    });
+                    
+                    let earnedPoints = 10;
+                    const comboBadge = document.getElementById('comboBadge');
+                    if (!currentQuestionHasError) {
+                        consecutiveCorrect++;
+                    } else {
+                        consecutiveCorrect = 0;
+                    }
+
+                    if (consecutiveCorrect >= 2) {
+                        earnedPoints = 20;
+                        comboBadge.classList.remove('hidden');
+                    } else {
+                        comboBadge.classList.add('hidden');
+                    }
+
+                    score += earnedPoints;
+                    scoreDisplay.innerText = score;
+
+                    let praises = ["好叻呀！🎉", "完全正確！🌟", "你係分數計算大師！🏆", "答案約簡得好好！✨"];
+                    let praiseText = praises[Math.floor(Math.random() * praises.length)];
+                    if (earnedPoints === 20) {
+                        praiseText += ` (連勝獎勵 +20分 🔥)`;
+                    } else {
+                        praiseText += ` (+10分 ✨)`;
+                    }
+
+                    feedbackMessage.innerHTML = `<span class="text-green-600 bg-green-100 border-2 border-green-300 rounded-xl p-1.5 sm:p-2 block w-full shadow-sm">${praiseText}</span>`;
+                    feedbackMessage.style.opacity = 1;
+                    
+                    submitBtn.classList.add('opacity-50', 'pointer-events-none');
+                    nextBtn.classList.remove('hidden');
+
+                    recordStudyProgress(earnedPoints, currentMode, 1, 0);
+                } else {
+                    terms.forEach(t => {
+                        if (!t.isEmpty) {
+                            t.wBox.classList.add('correct');
+                            t.nBox.classList.add('correct');
+                            t.dBox.classList.add('correct');
+                        }
+                    });
+                    
+                    let stepMsg = isDenOneStep 
+                        ? "步驟正確！分母是 1 可以直接寫成整數，請繼續化簡！" 
+                        : "步驟正確！請繼續化簡或計算。";
+
+                    feedbackMessage.innerHTML = `<span class="text-blue-600 bg-blue-100 border-2 border-blue-300 rounded-xl p-1.5 sm:p-2 block w-full shadow-sm">${stepMsg}</span>`;
+                    feedbackMessage.style.opacity = 1;
+                    
+                    setTimeout(() => {
+                        completedSteps.push(currentTermsMapped); 
+                        addStep(isDenOneStep ? 'whole' : 'num');
+                        feedbackMessage.style.opacity = 0;
+                    }, 800);
+                }
+
+            } else {
+                currentQuestionHasError = true;
+                consecutiveCorrect = 0;
+                document.getElementById('comboBadge').classList.add('hidden');
+                recordStudyProgress(0, currentMode, 0, 1);
+
+                terms.forEach(t => {
+                    if (!t.isEmpty) {
+                        t.wBox.classList.add('incorrect');
+                        t.nBox.classList.add('incorrect');
+                        t.dBox.classList.add('incorrect');
+                    }
+                });
+                
+                let prevStep = completedSteps[completedSteps.length - 1]; 
+                let specificFeedback = "";
+
+                if (prevStep && prevStep.length === 2 && currentTermsMapped.length === 1) {
+                    let p1 = prevStep[0];
+                    let p2 = prevStep[1];
+                    let c1 = currentTermsMapped[0];
+
+                    let p1_improper_n = p1.w * p1.d + p1.n;
+                    let p2_improper_n = p2.w * p2.d + p2.n;
+                    let c1_improper_n = c1.w * c1.d + c1.n;
+
+                    if (c1_improper_n === p1_improper_n + p2_improper_n && c1.d === p1.d + p2.d) {
+                        specificFeedback = "乘法唔係將分子加分子、分母加分母喎！請重新記住口訣。";
+                    }
+                    else if (p1.w > 0 && p1.n === 0 && c1_improper_n === p2_improper_n && c1.d === p1.w * p2.d) {
+                        specificFeedback = "整數應該同分子相乘，分母要保持不變呀！";
+                    }
+                    else if (p2.w > 0 && p2.n === 0 && c1_improper_n === p1_improper_n && c1.d === p2.w * p1.d) {
+                        specificFeedback = "整數應該同分子相乘，分母要保持不變呀！";
+                    }
+                    else if (p1.w > 0 && p1.n === 0 && c1_improper_n === p1.w * p2_improper_n && c1.d === p1.w * p2.d) {
+                        specificFeedback = "整數只係同分子相乘，分母唔需要乘㗎！";
+                    }
+                    else if (p2.w > 0 && p2.n === 0 && c1_improper_n === p2.w * p1_improper_n && c1.d === p2.w * p1.d) {
+                        specificFeedback = "整數只係同分子相乘，分母唔需要乘㗎！";
+                    }
+                    else if (c1_improper_n === p1_improper_n * p2.d && c1.d === p1.d * p2_improper_n) {
+                        specificFeedback = "呢個係乘法，直接「分子乘分子、分母乘分母」就可以，唔需要交叉相乘㗎！";
+                    }
+                } 
+                else if (prevStep && prevStep.length === 2 && currentTermsMapped.length === 2) {
+                    for (let i = 0; i < 2; i++) {
+                        let p = prevStep[i];
+                        let c = currentTermsMapped[i];
+                        if (p.w > 0 && c.w === 0 && c.d === p.d) { 
+                            if (c.n === p.w * p.n) {
+                                specificFeedback = "化假分數時，整數要乘分母，然後先加分子呀！(唔係整數乘分子)";
+                                break;
+                            } else if (c.n === p.w + p.n) {
+                                specificFeedback = "化假分數時，整數要乘分母，然後先加分子呀！(唔係整數加分子)";
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (specificFeedback !== "") {
+                    feedbackMessage.innerHTML = `<span class="text-red-600 bg-red-100 border-2 border-red-300 rounded-xl p-1.5 md:p-3 block w-full shadow-sm text-xs sm:text-base">💡 提示：${specificFeedback}</span>`;
+                } else {
+                    feedbackMessage.innerHTML = `<span class="text-red-600 bg-red-100 border-2 border-red-300 rounded-xl p-1.5 sm:p-2 block w-full shadow-sm">數值唔啱喎，請檢查下有無計錯數！🧐</span>`;
+                }
+                feedbackMessage.style.opacity = 1;
+            }
+        }
+
+        switchMode('mode1');
+    </script>
+</body>
+</html>
