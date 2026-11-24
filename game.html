@@ -256,6 +256,10 @@ box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.85); padding: 1px 7px; border-radius
 
 .stage-wave-badge { position: absolute; top: 8px; left: 8px; background: rgba(20, 26, 41, 0.85); color: #f1c40f; border: 1.5px solid #d4af63; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 900; z-index: 10; }
 .ally-box { position: absolute; width: 38%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; z-index: 5; bottom: 20%; left: 2%; }
+.ally-box.targetable { cursor: pointer; z-index: 55; filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.85)); }
+.ally-box.targetable:active { transform: scale(0.97); }
+#ally-crosshair { top: 62%; }
+#raid-player-bars.heal-targetable { cursor: pointer; outline: 2.5px solid #4ade80; border-radius: 8px; padding: 3px; background: rgba(20, 83, 45, 0.35); animation: pulseGlow 1.2s infinite; }
 .enemy-container { position: absolute; right: 2%; bottom: 12%; display: flex; flex-direction: row-reverse; z-index: 5; align-items: flex-end; justify-content: flex-start; width: 58%; }
 .enemy-unit { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; position: relative; cursor: default; transition: 0.2s; margin-left: -35px; }
 .enemy-unit:nth-child(1) { z-index: 5; }
@@ -463,7 +467,8 @@ body.host-mode #app { width: 100vw !important; height: 100dvh !important; transf
 .host-boss-hp-wrap { width: 100%; background: rgba(15, 23, 42, 0.88); border: 2px solid #ef4444; border-radius: 10px; padding: 8px 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55); }
 .host-boss-hp-bar-bg { width: 100%; height: 20px; background: #1e293b; border-radius: 8px; overflow: hidden; border: 1px solid #475569; margin-top: 5px; }
 .host-boss-hp-fill { height: 100%; background: linear-gradient(90deg, #dc2626, #f87171); width: 100%; transition: width 0.35s ease; }
-.host-boss-avatar { font-size: clamp(90px, 16vh, 155px); line-height: 1; animation: floatAnim 2.5s ease-in-out infinite; filter: drop-shadow(0 0 26px rgba(168, 85, 247, 0.85)); position: relative; display: flex; align-items: center; justify-content: center; }
+.host-boss-avatar { width: 100%; height: clamp(140px, 34vh, 250px); font-size: clamp(90px, 16vh, 155px); line-height: 1; animation: floatAnim 2.5s ease-in-out infinite; filter: drop-shadow(0 0 26px rgba(168, 85, 247, 0.85)); position: relative; display: flex; align-items: center; justify-content: center; }
+.host-boss-avatar img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .host-boss-stats-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; }
 .host-stat-pill { background: rgba(15, 23, 42, 0.88); border: 1px solid #64748b; border-radius: 8px; padding: 3px 9px; font-size: 13px; color: #e2e8f0; font-weight: bold; }
 .host-stat-pill span { color: #fde047; margin-left: 4px; }
@@ -800,7 +805,7 @@ body.host-mode #app { width: 100vw !important; height: 100dvh !important; transf
 <div id="passive-popup-container"></div>
 
 
-<div class="ally-box" id="ally-box">
+<div class="ally-box" id="ally-box" onclick="onSelfHealConfirm()">
 <div class="unit-badge" id="ally-name" style="display:none;">美國隊長</div>
 <div class="hp-wrap">
 <div class="hp-label" style="display:flex; justify-content:space-between; color:#f8fafc;"><span id="ally-hp-text">100/100</span><span id="ally-jp-text" style="color:#60a5fa;">⚡ 0/10</span></div>
@@ -808,6 +813,13 @@ body.host-mode #app { width: 100vw !important; height: 100dvh !important; transf
 <div class="jp-container"><div class="jp-fill" id="ally-jp-bar"></div></div>
 </div>
 <div class="unit-avatar" id="ally-icon"></div>
+<svg class="target-crosshair" id="ally-crosshair" viewBox="0 0 100 100">
+<circle cx="50" cy="50" r="36" fill="none" stroke="#4ade80" stroke-width="5" stroke-dasharray="16 10"/>
+<line x1="50" y1="5" x2="50" y2="25" stroke="#fde047" stroke-width="5"/>
+<line x1="50" y1="75" x2="50" y2="95" stroke="#fde047" stroke-width="5"/>
+<line x1="5" y1="50" x2="25" y2="50" stroke="#fde047" stroke-width="5"/>
+<line x1="75" y1="50" x2="95" y2="50" stroke="#fde047" stroke-width="5"/>
+</svg>
 </div>
 
 
@@ -817,7 +829,7 @@ body.host-mode #app { width: 100vw !important; height: 100dvh !important; transf
 </div>
 
 
-<div id="raid-player-bars">
+<div id="raid-player-bars" onclick="onSelfHealConfirm()">
 <div class="raid-bar-wrap">
 <div class="raid-hp-fill" id="raid-ally-hp-bar"></div>
 <div class="raid-bar-text"><span>❤️ 生命 HP</span><span id="raid-ally-hp-text">100/100</span></div>
@@ -898,74 +910,93 @@ const HERO_DATA = {
 img: 'https://pmath-lab.github.io/fractions_m/HERO1.png',
 growth: [50, 40, 60, 40, 40, 40],
 skills: [
-{ n: '盾牌投擲', t: 'single', desc: '附加體力×40%額外傷害，並令目標震盪（下次攻擊-30%）', fx: { staDmgRatio: 0.4, weakenEnemy: 1 } },
-{ n: '正義衝鋒', t: 'single', desc: '攻擊並舉盾，2回合內受擊減傷35%', fx: { shieldTurns: 2, shieldPct: 35 } },
-{ n: '復仇者號令', t: 'all', desc: '全體攻擊，回復20%最大HP，2回合內攻擊+25%', fx: { healMaxHpPct: 20, atkUpTurns: 2, atkUpPct: 25 } },
-{ n: '終極振金盾', t: 'single', desc: '無視50%防禦＋附加體力等值傷害，並格擋下1次攻擊', fx: { ignoreDefPct: 50, staDmgRatio: 1.0, blockHits: 1 } }
+{ n: '盾牌投擲', t: 'single', cost: 2, desc: v => `附加體力×${Math.round(v.staDmgRatio*100)}%額外傷害，並令目標震盪（下次攻擊傷害-5）`, fx: { staDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], weakenEnemy: 1 } },
+{ n: '正義衝鋒', t: 'single', cost: 2, desc: v => `攻擊並舉盾，${v.shieldTurns}回合內受擊減傷35%`, fx: { shieldTurns: [1,1,2,2,3,3,4,4,5], shieldPct: 35 } },
+{ n: '復仇者號令', t: 'all', cost: 4, desc: v => `全體攻擊，回復${v.healMaxHpPct}%最大HP，2題目內攻擊+25%`, fx: { healMaxHpPct: [10,12,14,16,18,20,22,24,25], atkUpTurns: 2, atkUpPct: 25 } },
+{ n: '終極振金盾', t: 'single', cost: 6, desc: v => `無視${v.ignoreDefPct}%防禦＋附加體力等值傷害，並格擋下1次攻擊`, fx: { ignoreDefPct: [20,22,24,26,28,30,32,34,35], staDmgRatio: 1.0, blockHits: 1 } }
 ]
 },
 '蜘蛛俠': {
 img: 'https://pmath-lab.github.io/fractions_m/HERO2.png',
 growth: [40, 50, 40, 50, 55, 55],
 skills: [
-{ n: '蛛網射擊', t: 'single', desc: '附加敏捷×50%額外傷害，45%機率束縛敵人1回合（未觸發則令敵攻-30%）', fx: { agiDmgRatio: 0.5, stunChance: 45, weakenEnemy: 1 } },
-{ n: '擺盪踢擊', t: 'single', desc: '暴擊率+35%、返還1點JP，2回合內閃避率+25%', fx: { critBonus: 35, refundJp: 1, dodgeUpTurns: 2, dodgeUpPct: 25 } },
-{ n: '蜘蛛感應', t: 'all', desc: '全體攻擊，2回合內閃避率+40%，且下1次面對攻擊必反擊80%攻擊力', fx: { dodgeUpTurns: 2, dodgeUpPct: 40, guaranteeCounter: 1 } },
-{ n: '鋼鐵蜘蛛連擊', t: 'single', desc: '高速多段連擊（總傷+35%）＋附加敏捷等值傷害，且本次必暴擊', fx: { agiDmgRatio: 1.0, bonusDmgPct: 35, guaranteedCrit: true } }
+{ n: '蛛網射擊', t: 'single', cost: 2, desc: v => `附加敏捷×${Math.round(v.agiDmgRatio*100)}%額外傷害，45%機率束縛敵人1回合（未觸發則敵下次攻擊傷害-5）`, fx: { agiDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], stunChance: 45, weakenEnemy: 1 } },
+{ n: '擺盪踢擊', t: 'single', cost: 2, desc: v => `暴擊率+${v.critBonus}%、暴擊時返還1點JP，1題目內閃避率+25%`, fx: { critBonus: [20,22,24,26,28,30,32,34,35], refundJpOnCrit: 1, dodgeUpTurns: 1, dodgeUpPct: 25 } },
+{ n: '蜘蛛感應', t: 'all', cost: 5, desc: v => `全體攻擊，附加敏捷×${v.agiDmgRatio}額外傷害，1題目內閃避率+40%，下1次受擊必反擊80%攻`, fx: { agiDmgRatio: [2,2.2,2.4,2.6,2.8,3,3.2,3.4,3.5], dodgeUpTurns: 1, dodgeUpPct: 40, guaranteeCounter: 1 } },
+{ n: '鋼鐵蜘蛛連擊', t: 'single', cost: 6, desc: v => `高速多段連擊（總傷+${v.bonusDmgPct}%）＋附加敏捷等值傷害，且本次必暴擊`, fx: { bonusDmgPct: [20,22,24,26,28,30,32,34,35], agiDmgRatio: 1.0, guaranteedCrit: true } }
 ]
 },
 '鋼鐵人': {
 img: 'https://pmath-lab.github.io/fractions_m/HERO3.png',
 growth: [45, 45, 50, 60, 50, 40],
 skills: [
-{ n: '掌心脈衝', t: 'single', desc: '附加思考×60%額外傷害，並透過反應爐充能返還1點JP', fx: { intDmgRatio: 0.6, refundJp: 1 } },
-{ n: '微型飛彈', t: 'all', desc: '無視敵人30%防禦，並附加2回合「破甲」（敵方受傷害+20%）', fx: { ignoreDefPct: 30, armorBreakTurns: 2 } },
-{ n: '鐳射光束', t: 'single', desc: '無視敵人65%防禦＋附加思考等值傷害，暴擊率+30%', fx: { ignoreDefPct: 65, intDmgRatio: 1.0, critBonus: 30 } },
-{ n: '胸口反應爐砲', t: 'all', desc: '全體超載轟擊（總傷+25%＋思考×120%傷害），回復15%HP並獲得2回合減傷30%護盾', fx: { intDmgRatio: 1.2, bonusDmgPct: 25, healMaxHpPct: 15, shieldTurns: 2, shieldPct: 30 } }
+{ n: '掌心脈衝', t: 'single', cost: 2, desc: v => `附加思考×${Math.round(v.intDmgRatio*100)}%額外傷害，45%機率反應爐充能返還1點JP`, fx: { intDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], refundJp: 1, refundJpChance: 45 } },
+{ n: '微型飛彈', t: 'all', cost: 2, desc: v => `無視敵人${v.ignoreDefPct}%防禦，並附加2回合「破甲」（敵方受傷害+5）`, fx: { ignoreDefPct: [20,22,24,26,28,30,32,34,35], armorBreakTurns: 2 } },
+{ n: '鐳射光束', t: 'single', cost: 4, desc: v => `無視敵人65%防禦＋附加思考等值傷害，暴擊率+${v.critBonus}%`, fx: { ignoreDefPct: 65, intDmgRatio: 1.0, critBonus: [20,22,24,26,28,30,32,34,35] } },
+{ n: '胸口反應爐砲', t: 'all', cost: 6, desc: v => `全體超載轟擊（總傷+25%＋思考×${v.intDmgRatio}傷害），回復15%HP並獲2回合減傷30%護盾`, fx: { bonusDmgPct: 25, intDmgRatio: [2,2.2,2.4,2.6,2.8,3,3.2,3.4,3.5], healMaxHpPct: 15, shieldTurns: 2, shieldPct: 30 } }
 ]
 },
 '雷神索爾': {
 img: 'https://pmath-lab.github.io/fractions_m/HERO4.png',
 growth: [55, 55, 45, 45, 45, 45],
 skills: [
-{ n: '雷神之鎚', t: 'single', desc: '附加攻擊×40%額外傷害，35%機率雷電麻痺敵人1回合，並附加1回合「破甲」', fx: { atkDmgRatio: 0.4, stunChance: 35, armorBreakTurns: 1 } },
-{ n: '閃電風暴', t: 'all', desc: '全體雷擊暴擊率+25%，30%機率麻痺目標1回合，並附加2回合「破甲」（敵方受傷害+20%）', fx: { critBonus: 25, stunChance: 30, armorBreakTurns: 2 } },
-{ n: '阿斯嘉神力', t: 'all', desc: '全體神雷攻擊，回復25%最大HP，2回合內攻擊+30%且受擊減傷25%', fx: { healMaxHpPct: 25, atkUpTurns: 2, atkUpPct: 30, shieldTurns: 2, shieldPct: 25 } },
-{ n: '風暴毀滅者', t: 'single', desc: '無視80%防禦、總傷+30%＋附加最大HP×15%傷害，且本次攻擊必暴擊', fx: { ignoreDefPct: 80, bonusDmgPct: 30, maxHpDmgRatio: 0.15, guaranteedCrit: true } }
+{ n: '雷神之鎚', t: 'single', cost: 2, desc: v => `附加攻擊×${Math.round(v.atkDmgRatio*100)}%額外傷害，35%機率麻痺敵人1回合，附加1回合「破甲」（受傷害+5）`, fx: { atkDmgRatio: [0.20,0.22,0.24,0.26,0.28,0.30,0.32,0.34,0.35], stunChance: 35, armorBreakTurns: 1 } },
+{ n: '閃電風暴', t: 'all', cost: 3, desc: v => `全體雷擊暴擊率+${v.critBonus}%，30%機率麻痺1回合，附加2回合「破甲」（受傷害+5）`, fx: { critBonus: [20,22,24,26,28,30,32,34,35], stunChance: 30, armorBreakTurns: 2 } },
+{ n: '阿斯嘉神力', t: 'all', cost: 5, desc: () => '全體神雷攻擊，回復25%最大HP，2回合內自己攻擊+5且體力+5', fx: { healMaxHpPct: 25, atkFlatTurns: 2, atkFlatBonus: 5, staFlatTurns: 2, staFlatBonus: 5 } },
+{ n: '風暴毀滅者', t: 'single', cost: 8, desc: v => `無視${v.ignoreDefPct}%防禦、總傷+30%＋附加最大HP×15%傷害，且本次必暴擊`, fx: { ignoreDefPct: [10,20,30,40,50,60,70,80,90], bonusDmgPct: 30, maxHpDmgRatio: 0.15, guaranteedCrit: true } }
 ]
 },
 '浩克': {
 img: 'https://pmath-lab.github.io/fractions_m/HERO5.png',
 growth: [70, 70, 65, 25, 30, 30],
 skills: [
-{ n: '浩克重擊', t: 'single', desc: '附加攻擊×50%額外傷害，並附帶25%傷害吸血回復自身HP', fx: { atkDmgRatio: 0.5, lifestealPct: 25 } },
-{ n: '大地粉碎', t: 'all', desc: '附加體力×60%額外傷害，35%機率震暈敵人1回合，並附加2回合「破甲」', fx: { staDmgRatio: 0.6, stunChance: 35, armorBreakTurns: 2 } },
-{ n: '狂怒咆哮', t: 'all', desc: '全體咆哮攻擊，回復30%最大HP，2回合內攻擊+40%且受擊減傷30%', fx: { healMaxHpPct: 30, atkUpTurns: 2, atkUpPct: 40, shieldTurns: 2, shieldPct: 30 } },
-{ n: '無敵毀滅掌', t: 'single', desc: '無視60%防禦＋附加最大HP×20%傷害，依已損血量最高增傷+80%並附帶30%傷害吸血', fx: { ignoreDefPct: 60, maxHpDmgRatio: 0.2, missingHpBonusMaxPct: 80, lifestealPct: 30 } }
+{ n: '浩克重擊', t: 'single', cost: 2, desc: v => `附加攻擊×50%額外傷害，並附帶${v.lifestealPct}%傷害吸血回復自身HP`, fx: { atkDmgRatio: 0.5, lifestealPct: [20,22,24,26,28,30,32,34,35] } },
+{ n: '大地粉碎', t: 'all', cost: 2, desc: v => `附加體力×60%額外傷害，${v.stunChance}%機率震暈敵人1回合，並附加2回合「破甲」（受傷害+5）`, fx: { staDmgRatio: 0.6, stunChance: [20,22,24,26,28,30,32,34,35], armorBreakTurns: 2 } },
+{ n: '狂怒咆哮', t: 'all', cost: 4, desc: v => `全體咆哮攻擊，回復${v.healMaxHpPct}%最大HP，2回合內攻擊+5且體力+5`, fx: { healMaxHpPct: [20,22,24,26,28,30,32,34,35], atkFlatTurns: 2, atkFlatBonus: 5, staFlatTurns: 2, staFlatBonus: 5 } },
+{ n: '無敵毀滅掌', t: 'single', cost: 7, desc: v => `無視${v.ignoreDefPct}%防禦＋附加最大HP×20%傷害，依已損血量最高增傷+80%並吸血30%`, fx: { ignoreDefPct: [20,25,30,35,40,45,50,55,60], maxHpDmgRatio: 0.2, missingHpBonusMaxPct: 80, lifestealPct: 30 } }
 ]
 },
 '黑寡婦': {
 img: 'https://pmath-lab.github.io/fractions_m/HERO6.png',
 growth: [35, 45, 35, 60, 60, 55],
 skills: [
-{ n: '寡婦蟄針', t: 'single', desc: '附加思考×50%額外傷害，40%機率電擊麻痺敵人1回合，並附加1回合「破甲」', fx: { intDmgRatio: 0.5, stunChance: 40, armorBreakTurns: 1 } },
-{ n: '格鬥連踢', t: 'single', desc: '附加敏捷×60%額外傷害，暴擊率+40%、返還1點JP，並附加2回合「破甲」', fx: { agiDmgRatio: 0.6, critBonus: 40, refundJp: 1, armorBreakTurns: 2 } },
-{ n: '戰術閃避', t: 'all', desc: '全體攻擊並回復15%最大HP，2回合內閃避+45%、攻擊+25%，並完美閃避下1次攻擊', fx: { healMaxHpPct: 15, dodgeUpTurns: 2, dodgeUpPct: 45, atkUpTurns: 2, atkUpPct: 25, blockHits: 1 } },
-{ n: '致命絕殺', t: 'single', desc: '無視100%防禦＋附加(敏捷+運氣)×80%傷害，本次必暴擊且暴擊倍率提升至2.0倍', fx: { ignoreDefPct: 100, agiDmgRatio: 0.8, lukDmgRatio: 0.8, guaranteedCrit: true, critDmgMult: 2.0 } }
+{ n: '寡婦蟄針', t: 'single', cost: 2, desc: v => `附加思考×${Math.round(v.intDmgRatio*100)}%額外傷害，40%機率電擊麻痺1回合，附加1回合「破甲」（受傷害+5）`, fx: { intDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], stunChance: 40, armorBreakTurns: 1 } },
+{ n: '格鬥連踢', t: 'single', cost: 2, desc: v => `附加敏捷×${Math.round(v.agiDmgRatio*100)}%額外傷害，暴擊率+40%、暴擊時返還1點JP，附加2回合「破甲」`, fx: { agiDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], critBonus: 40, refundJpOnCrit: 1, armorBreakTurns: 2 } },
+{ n: '戰術閃避', t: 'all', cost: 6, desc: v => `全體攻擊並回復15%最大HP，2回合內閃避+${v.dodgeUpPct}%、攻擊+5，並完美閃避下1次攻擊`, fx: { healMaxHpPct: 15, dodgeUpTurns: 2, dodgeUpPct: [20,22,24,26,28,30,32,34,35], atkFlatTurns: 2, atkFlatBonus: 5, blockHits: 1 } },
+{ n: '致命絕殺', t: 'single', cost: 8, desc: v => `無視100%防禦＋附加(敏捷+運氣)×${Math.round(v.agiDmgRatio*100)}%傷害，本次必暴擊且暴擊倍率2.0倍`, fx: { ignoreDefPct: 100, agiDmgRatio: [0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80], lukDmgRatio: [0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80], guaranteedCrit: true, critDmgMult: 2.0 } }
 ]
 },
 '鷹眼': {
 img: 'https://pmath-lab.github.io/fractions_m/HERO7.png',
 growth: [35, 55, 35, 55, 55, 55],
 skills: [
-{ n: '精準射擊', t: 'single', desc: '無視敵人35%防禦，暴擊率+30%，並返還1點JP', fx: { ignoreDefPct: 35, critBonus: 30, refundJp: 1 } },
-{ n: '爆炸箭矢', t: 'all', desc: '全體爆破附加攻擊×40%額外傷害，附加2回合「破甲」並令目標震盪（下次攻擊-30%）', fx: { atkDmgRatio: 0.4, armorBreakTurns: 2, weakenEnemy: 1 } },
-{ n: '多重連珠箭', t: 'all', desc: '全體連射附加敏捷×60%額外傷害、暴擊率+35%，2回合內攻擊+30%且閃避+25%', fx: { agiDmgRatio: 0.6, critBonus: 35, atkUpTurns: 2, atkUpPct: 30, dodgeUpTurns: 2, dodgeUpPct: 25 } },
-{ n: '穿雲必殺箭', t: 'single', desc: '無視100%防禦、總傷+35%＋附加(攻擊+運氣)×70%傷害，本次必暴擊且暴擊倍率提升至2.0倍', fx: { ignoreDefPct: 100, bonusDmgPct: 35, atkDmgRatio: 0.7, lukDmgRatio: 0.7, guaranteedCrit: true, critDmgMult: 2.0 } }
+{ n: '精準射擊', t: 'single', cost: 2, desc: v => `無視敵人${v.ignoreDefPct}%防禦，暴擊率+30%，暴擊時返還1點JP`, fx: { ignoreDefPct: [20,22,24,26,28,30,32,34,35], critBonus: 30, refundJpOnCrit: 1 } },
+{ n: '爆炸箭矢', t: 'all', cost: 4, desc: v => `全體爆破附加攻擊×${Math.round(v.atkDmgRatio*100)}%額外傷害，附加2回合「破甲」並令目標震盪（下次攻擊-5）`, fx: { atkDmgRatio: [0.20,0.22,0.24,0.26,0.28,0.30,0.32,0.34,0.35], armorBreakTurns: 2, weakenEnemy: 1 } },
+{ n: '多重連珠箭', t: 'all', cost: 6, desc: v => `全體連射附加敏捷×${Math.round(v.agiDmgRatio*100)}%額外傷害、暴擊率+35%，2回合內攻擊+30%且閃避+25%`, fx: { agiDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], critBonus: 35, atkUpTurns: 2, atkUpPct: 30, dodgeUpTurns: 2, dodgeUpPct: 25 } },
+{ n: '穿雲必殺箭', t: 'single', cost: 8, desc: v => `無視100%防禦、總傷+35%＋附加(攻擊+運氣)×${Math.round(v.atkDmgRatio*100)}%傷害，本次必暴擊且暴擊倍率2.0倍`, fx: { ignoreDefPct: 100, bonusDmgPct: 35, atkDmgRatio: [0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70], lukDmgRatio: [0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70], guaranteedCrit: true, critDmgMult: 2.0 } }
 ]
 }
 };
 
+function resolveSkillFx(sk, lv) {
+const idx = Math.min(8, Math.max(0, (Number(lv) || 1) - 1));
+const raw = sk && sk.fx ? sk.fx : {};
+const out = {};
+Object.keys(raw).forEach(k => {
+out[k] = Array.isArray(raw[k]) ? raw[k][Math.min(idx, raw[k].length - 1)] : raw[k];
+});
+return out;
+}
+
+function getSkillDescText(sk, lv) {
+if (!sk || !sk.desc) return '';
+const fx = resolveSkillFx(sk, lv);
+return typeof sk.desc === 'function' ? sk.desc(fx) : sk.desc;
+}
+
+function getSkillCost(sk, idxZeroBased) {
+return (sk && sk.cost !== undefined) ? sk.cost : (SKILL_COSTS[idxZeroBased] || 2);
+}
 
 const SKILL_COSTS = [2, 4, 6, 8];
 const SKILL_BASE_MULT = [1.4, 1.8, 2.2, 2.8];
@@ -999,15 +1030,35 @@ const MOD_DESC = {
 const BATTLE_BGS = Array.from({ length: 12 }, (_, i) => `https://pmath-lab.github.io/fractions_m/mbg${i + 1}.jpg`);
 
 
+const RAID_BOSS_IMG = 'https://pmath-lab.github.io/fractions_m/marvel_foe14.png';
+
+function renderAvatarHtml(icon, altText) {
+const val = String(icon || '');
+if (/^https?:\/\//i.test(val)) {
+return `<img src="${val}" alt="${altText || 'BOSS'}">`;
+}
+return val;
+}
+
+function formatBossTitle(icon, name) {
+const val = String(icon || '');
+const prefix = /^https?:\/\//i.test(val) ? '😈' : (val || '😈');
+return `${prefix} ${name}`;
+}
+
 const MISSION_DATA = [
-{ name: '紐約保衛戰', power: 100, reward: 120, bg: BATTLE_BGS[0], speaker: '尼克·福瑞', story: '特工！齊塔瑞先鋒部隊已經突破曼哈頓防線，立刻運用分數乘法能量阻止他們！', boss: { name: '齊塔瑞指揮官', icon: '👽' } },
-{ name: '九頭蛇基地', power: 160, reward: 180, bg: BATTLE_BGS[1], speaker: '瑪莉亞·希爾', story: '偵測到九頭蛇在雪地基地秘密測試能量武器，請立即潛入並瓦解敵軍！', boss: { name: '紅骷髏殘影', icon: '💀' } },
-{ name: '蘇科維亞危機', power: 240, reward: 260, bg: BATTLE_BGS[2], speaker: '鋼鐵人', story: '奧創的機械大軍正在集結！小心，從這關開始首領戰將全面啟用 1-20 進階題！', boss: { name: '奧創主機', icon: '🤖' } },
-{ name: '瓦干達前線', power: 340, reward: 360, bg: BATTLE_BGS[3], speaker: '黑豹特使', story: '外星先鋒衛正猛攻瓦干達能量護盾，展現復仇者的最強實力吧！', boss: { name: '暗夜比鄰星', icon: '⚔️' } },
-{ name: '阿斯嘉彩虹橋', power: 460, reward: 480, bg: BATTLE_BGS[4], speaker: '海姆達爾', story: '火巨人與冰霜巨魔侵入九界通道，守護阿斯嘉的榮耀就靠你了！', boss: { name: '洛基幻影', icon: '🪄' } },
-{ name: '泰坦星決戰', power: 600, reward: 650, bg: BATTLE_BGS[5], speaker: '奇異博士', story: '在 1400 萬種未來中，只有精準計算分數的英雄才能擊敗無限寶石的威脅！', boss: { name: '黑曜獵手', icon: '🦍' } },
-{ name: '量子領域突圍', power: 780, reward: 850, bg: BATTLE_BGS[6], speaker: '蟻人', story: '量子通道出現時空異常，敵軍戰力大幅飆升，集中精神破解每一道算式！', boss: { name: '征服者康幻象', icon: '🌀' } },
-{ name: '復仇者總部終局', power: 980, reward: 1100, bg: BATTLE_BGS[7], speaker: '尼克·福瑞', story: '終局之戰正式打響！所有特工全力以赴，迎戰宇宙級終極威脅！', boss: { name: '薩諾斯分身', icon: '😈' } }
+{ name: '紐約保衛戰', power: 100, reward: 120, bg: BATTLE_BGS[0], speaker: '尼克·福瑞', story: '特工！齊塔瑞先鋒部隊已經突破曼哈頓防線，立刻運用分數乘法能量阻止他們！', boss: { name: '齊塔瑞指揮官', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe1.png' } },
+{ name: '九頭蛇基地', power: 160, reward: 180, bg: BATTLE_BGS[1], speaker: '瑪莉亞·希爾', story: '偵測到九頭蛇在雪地基地秘密測試能量武器，請立即潛入並瓦解敵軍！', boss: { name: '紅骷髏殘影', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe2.png' } },
+{ name: '蘇科維亞危機', power: 240, reward: 260, bg: BATTLE_BGS[2], speaker: '鋼鐵人', story: '奧創的機械大軍正在集結！小心，從這關開始首領戰將全面啟用 1-20 進階題！', boss: { name: '奧創主機', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe3.png' } },
+{ name: '瓦干達前線', power: 340, reward: 360, bg: BATTLE_BGS[3], speaker: '黑豹特使', story: '外星先鋒衛正猛攻瓦干達能量護盾，展現復仇者的最強實力吧！', boss: { name: '暗夜比鄰星', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe4.png' } },
+{ name: '阿斯嘉彩虹橋', power: 460, reward: 480, bg: BATTLE_BGS[4], speaker: '海姆達爾', story: '火巨人與冰霜巨魔侵入九界通道，守護阿斯嘉的榮耀就靠你了！', boss: { name: '洛基幻影', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe5.png' } },
+{ name: '泰坦星決戰', power: 600, reward: 650, bg: BATTLE_BGS[5], speaker: '奇異博士', story: '在 1400 萬種未來中，只有精準計算分數的英雄才能擊敗無限寶石的威脅！', boss: { name: '黑曜獵手', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe6.png' } },
+{ name: '量子領域突圍', power: 780, reward: 850, bg: BATTLE_BGS[6], speaker: '蟻人', story: '量子通道出現時空異常，敵軍戰力大幅飆升，集中精神破解每一道算式！', boss: { name: '征服者康幻象', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe7.png' } },
+{ name: '復仇者總部終局', power: 980, reward: 1100, bg: BATTLE_BGS[7], speaker: '尼克·福瑞', story: '終局之戰正式打響！所有特工全力以赴，迎戰宇宙級終極威脅！', boss: { name: '薩諾斯分身', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe8.png' } },
+{ name: '黑暗維度裂縫', power: 1200, reward: 1400, bg: BATTLE_BGS[8], speaker: '奇異博士', story: '多元宇宙邊界出現黑暗裂縫，神秘強敵正在吞噬時間與空間！', boss: { name: '多瑪暮化身', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe9.png' } },
+{ name: '虛無之地圍城', power: 1450, reward: 1750, bg: BATTLE_BGS[9], speaker: '雷神索爾', story: '宇宙海盜與軍團聯手封鎖虛無之地，以雷霆之勢突破重圍吧！', boss: { name: '指控者羅南', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe10.png' } },
+{ name: '死亡神域審判', power: 1750, reward: 2150, bg: BATTLE_BGS[10], speaker: '海姆達爾', story: '古老的死亡神力再次甦醒，唯有最精密的分數運算能斬斷宿命！', boss: { name: '死亡女神海拉', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe11.png' } },
+{ name: '無限多元終戰', power: 2100, reward: 2600, bg: BATTLE_BGS[11], speaker: '尼克·福瑞', story: '這是最終試煉！集合全復仇者之力，擊敗統治多元宇宙的終極霸主！', boss: { name: '無限奧創', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe12.png' } }
 ];
 
 
@@ -1032,11 +1083,11 @@ let battle = {
 missionIndex: 0, wave: 1, phase: 'math', busy: false,
 allyHp: 100, allyMaxHp: 100, allyJp: 0,
 enemies: [], targetPhase: false, pendingAction: null, pendingSkillNum: null, selectedTarget: null,
-subMenuMode: null,
+subMenuMode: null, healTargetPhase: false, pendingHealParam: 0,
 missionMoneyEarned: 0,
 isRaid: false, raidPin: null, raidTotalDmg: 0, raidTotalHeal: 0, raidTotalCorrect: 0, pendingRaidCorrect: 0,
-quizDiff: { tier: 'small', smallCleanStreak: 0, largeWrongCount: 0, hadErrorThisQ: false },
-buffs: { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 }
+quizDiff: { tier: 'small', smallDoneCount: 0, hadErrorThisQ: false },
+buffs: { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, atkFlatTurns: 0, atkFlatBonus: 0, staFlatTurns: 0, staFlatBonus: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 }
 };
 
 
@@ -1423,13 +1474,15 @@ const cost = (lv + 1) * 500;
 const isMax = lv >= 9;
 const sk = skills[i - 1];
 const typeTag = sk.t === 'all' ? '<span style="color:#f87171;font-size:12px;">[全體]</span>' : '<span style="color:#60a5fa;font-size:12px;">[單體]</span>';
-const fxDescHtml = sk.desc ? `<div style="font-size:12px;color:#fcd34d;margin-top:2px;">✨ ${sk.desc}</div>` : '';
+const descStr = getSkillDescText(sk, Math.max(1, lv));
+const fxDescHtml = descStr ? `<div style="font-size:12px;color:#fcd34d;margin-top:2px;">✨ ${descStr}</div>` : '';
+const jpCostSkill = getSkillCost(sk, i - 1);
 const btnHtml = isMax ? `<button class="upg-btn locked">MAX</button>` : `<button class="upg-btn" onclick="buySkillUpgrade(${i}, ${cost})">${lv === 0 ? '解鎖' : '升級'} ($<span class="num-font">${cost}</span>)</button>`;
 list.innerHTML += `
 <div class="upg-item">
 <div class="upg-info">
 <div class="upg-title">${sk.n} ${typeTag}</div>
-<div class="upg-desc">${lv === 0 ? '未解鎖' : `技能傷害 +<span class="num-font">${lv * 20}</span>%`}（⚡${SKILL_COSTS[i - 1]} JP）</div>
+<div class="upg-desc">${lv === 0 ? '未解鎖' : `技能傷害 +<span class="num-font">${lv * 20}</span>%`}（⚡${jpCostSkill} JP）</div>
 ${fxDescHtml}
 </div>
 <div class="upg-action">
@@ -1560,12 +1613,13 @@ function openMissionSelect() {
 document.getElementById('mission-money').innerText = student.money;
 const list = document.getElementById('mission-list');
 list.innerHTML = '';
+const maxUnlocked = student.unlockedMission || 0;
 MISSION_DATA.forEach((m, idx) => {
-const unlocked = idx <= (student.unlockedMission || 0);
+if (idx > maxUnlocked) return;
 list.innerHTML += `
-<button class="mission-btn ${unlocked ? '' : 'locked-mission'}" style="${unlocked ? `background-image:linear-gradient(90deg, rgba(255,255,255,0.82), rgba(255,255,255,0.45)), url('${m.bg}')` : ''}" onclick="${unlocked ? `startMission(${idx})` : ''}">
-<div class="mission-title">${unlocked ? `任務 ${idx + 1}：${m.name}` : `🔒 任務 ${idx + 1} (未解鎖)`}</div>
-<div class="mission-power">${unlocked ? `推薦戰力 ${m.power} ｜ 基礎賞金 $${m.reward}` : '完成前一關卡解鎖'}</div>
+<button class="mission-btn" style="background-image:linear-gradient(90deg, rgba(255,255,255,0.82), rgba(255,255,255,0.45)), url('${m.bg}')" onclick="startMission(${idx})">
+<div class="mission-title">任務 ${idx + 1}：${m.name}</div>
+<div class="mission-power">推薦戰力 ${m.power} ｜ 基礎賞金 $${m.reward}</div>
 </button>`;
 });
 showScreen('screen-mission-select');
@@ -1612,8 +1666,8 @@ battle.pendingSkillNum = null;
 battle.selectedTarget = null;
 battle.subMenuMode = null;
 battle.missionMoneyEarned = 0;
-battle.quizDiff = { tier: 'small', smallCleanStreak: 0, largeWrongCount: 0, hadErrorThisQ: false };
-battle.buffs = { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 };
+battle.quizDiff = { tier: 'small', smallDoneCount: 0, hadErrorThisQ: false };
+battle.buffs = { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, atkFlatTurns: 0, atkFlatBonus: 0, staFlatTurns: 0, staFlatBonus: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 };
 
 
 document.getElementById('battle-student-name').innerText = `${student.hero} LV.${student.levels[student.hero] || 1}`;
@@ -1674,7 +1728,7 @@ battle.pendingAction = null;
 battle.pendingSkillNum = null;
 battle.selectedTarget = null;
 battle.subMenuMode = null;
-battle.buffs = { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 };
+battle.buffs = { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, atkFlatTurns: 0, atkFlatBonus: 0, staFlatTurns: 0, staFlatBonus: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 };
 hideSkillMenus();
 renderEnemies();
 setBattleLog(isBoss ? `⚠️ 首領【${m.boss.name}】現身！請解題累積能量！` : `⚔️ 遭遇 ${battle.enemies.length} 名敵人！請開始解題！`);
@@ -1713,7 +1767,7 @@ div.onclick = () => onEnemyClick(idx);
 div.innerHTML = `
 <div class="enemy-info">${e.name}<br>HP ${e.hp}/${e.maxHp}</div>
 <div class="hp-wrap"><div class="hp-container"><div class="hp-fill" id="enemy-hp-bar-${idx}" style="width:${pct}%"></div></div></div>
-<div class="unit-avatar">${e.icon}</div>
+<div class="unit-avatar">${renderAvatarHtml(e.icon, e.name)}</div>
 <svg class="target-crosshair ${showCrosshair ? 'show' : ''}" viewBox="0 0 100 100">
 <circle cx="50" cy="50" r="36" fill="none" stroke="#ef4444" stroke-width="5" stroke-dasharray="16 10"/>
 <line x1="50" y1="5" x2="50" y2="25" stroke="#fde047" stroke-width="5"/>
@@ -1734,7 +1788,8 @@ if (battle.buffs && battle.buffs.shieldHp > 0) statusTags.push(`🛡️${battle.
 if (battle.buffs && battle.buffs.guaranteedDodgeHits > 0) statusTags.push(`🕷️必閃×${battle.buffs.guaranteedDodgeHits}`);
 if (battle.buffs && battle.buffs.teamDodgeOnceCount > 0) statusTags.push(`💨+${battle.buffs.teamDodgeOncePct || 30}%閃`);
 if (battle.buffs && battle.buffs.repairQuestions > 0) statusTags.push(`🔧修復×${battle.buffs.repairQuestions}`);
-if (battle.buffs && battle.buffs.atkBoostCharges > 0) statusTags.push(`⚡攻UP×${battle.buffs.atkBoostCharges}`);
+if (battle.buffs && battle.buffs.atkFlatTurns > 0) statusTags.push(`⚡攻+${battle.buffs.atkFlatBonus}(${battle.buffs.atkFlatTurns})`);
+if (battle.buffs && battle.buffs.staFlatTurns > 0) statusTags.push(`💪體+${battle.buffs.staFlatBonus}(${battle.buffs.staFlatTurns})`);
 if (battle.buffs && battle.buffs.doctorTurns > 0) statusTags.push(`🩺醫生×${battle.buffs.doctorTurns}`);
 const tagSuffix = statusTags.length > 0 ? ` ${statusTags.join(' ')}` : '';
 document.getElementById('ally-hp-text').innerText = `${battle.allyHp}/${battle.allyMaxHp}${tagSuffix}`;
@@ -1874,7 +1929,7 @@ const skills = HERO_DATA[student.hero].skills;
 for (let i = 1; i <= 4; i++) {
 const btn = document.getElementById(`sub-btn-${i}`);
 const lv = student.upgrades.skills[i] || 0;
-const cost = SKILL_COSTS[i - 1];
+const cost = getSkillCost(skills[i - 1], i - 1);
 btn.innerText = lv === 0 ? `${skills[i - 1].n}\n(未解鎖)` : `${skills[i - 1].n}\n⚡${cost} JP`;
 btn.disabled = lv === 0 || battle.allyJp < cost;
 }
@@ -1882,8 +1937,20 @@ btn.disabled = lv === 0 || battle.allyJp < cost;
 }
 
 
+function clearSelfHealAim() {
+battle.healTargetPhase = false;
+battle.pendingHealParam = 0;
+const allyBox = document.getElementById('ally-box');
+const allyCross = document.getElementById('ally-crosshair');
+const raidBars = document.getElementById('raid-player-bars');
+if (allyBox) allyBox.classList.remove('targetable');
+if (allyCross) allyCross.classList.remove('show');
+if (raidBars) raidBars.classList.remove('heal-targetable');
+}
+
 function hideSkillMenus() {
 battle.subMenuMode = null;
+clearSelfHealAim();
 const subRow = document.getElementById('skill-sub-row');
 subRow.classList.remove('show');
 subRow.style.gridTemplateColumns = 'repeat(4, 1fr)';
@@ -1897,6 +1964,101 @@ b.style.display = i <= 4 ? '' : 'none';
 }
 }
 
+function getHealPreviewMeta(extraParam = 0) {
+const st = getEffectiveStats().total;
+const baseHeal = Math.max(1, Math.round(battle.allyMaxHp * 0.2));
+const hero = student.hero;
+if (hero === '美國隊長') {
+const shieldAmt = Math.max(1, Math.round(st.int * 1.2));
+const c = battle.isRaid ? Math.min(3, Math.max(0, Number(extraParam) || 0)) : 0;
+return {
+title: '🛡️ 美國隊長・振金保護盾',
+costText: c > 0 ? `消耗 ⚡${c} JP` : '⚡+1 JP',
+desc: `回復 ${baseHeal} HP＋保護盾 ${shieldAmt}${c > 0 ? `，並為 ${c} 位最低HP隊友上盾` : ''}`
+};
+}
+if (hero === '蜘蛛俠') {
+const useTeam = battle.isRaid && Number(extraParam) >= 4;
+return {
+title: '🕷️ 蜘蛛俠・蜘蛛直覺',
+costText: useTeam ? '消耗 ⚡4 JP' : '⚡+1 JP',
+desc: `回復 ${baseHeal} HP＋必定迴避 1 次${useTeam ? '，並為全體隊友加 1 次 30% 迴避' : ''}`
+};
+}
+if (hero === '鋼鐵人') {
+const c = battle.isRaid ? Math.min(3, Math.max(0, Number(extraParam) || 0)) : 0;
+return {
+title: '🔧 鋼鐵人・奈米修復',
+costText: c > 0 ? `消耗 ⚡${c} JP` : '⚡+1 JP',
+desc: `回復 ${baseHeal} HP＋「修復」2 題（答對回 10% HP）${c > 0 ? `，並賦予 ${c} 位最低HP隊友` : ''}`
+};
+}
+if (hero === '雷神索爾') {
+const c = battle.isRaid ? Math.min(4, Math.max(0, Number(extraParam) || 0)) : 0;
+return {
+title: '⚡ 雷神索爾・雷霆鼓舞',
+costText: c > 0 ? `消耗 ⚡${c} JP` : '⚡+1 JP',
+desc: `回復 ${baseHeal} HP＋自身攻擊+5（2回合）${c > 0 ? `，並為隨機 ${c * 5} 位隊友攻擊+5（2回合）` : ''}`
+};
+}
+if (hero === '浩克') {
+const c = Math.min(5, Math.max(0, Number(extraParam) || 0));
+return {
+title: '🩺 浩克・醫生狀態',
+costText: c > 0 ? `消耗 ⚡${c} JP` : '⚡+1 JP',
+desc: `回復 ${baseHeal} HP＋「醫生」${1 + c} 回合（攻擊後為最低HP玩家回等值傷）`
+};
+}
+if (hero === '黑寡婦') {
+const bonus = Math.max(1, Math.round(st.int * 1.5));
+const jp = battle.isRaid && [0, 2, 4, 6].includes(Number(extraParam)) ? Number(extraParam) : 0;
+const cnt = jp > 0 ? (jp / 2) * 10 : 0;
+return {
+title: '💉 黑寡婦・戰術急救',
+costText: jp > 0 ? `消耗 ⚡${jp} JP` : '⚡+1 JP',
+desc: `回復 ${baseHeal + bonus} HP（含思考×1.5）${cnt > 0 ? `，並為最低HP ${cnt} 人回 ${bonus} HP` : ''}`
+};
+}
+if (hero === '鷹眼') {
+const bonus = Math.max(1, Math.round(st.int * 0.6));
+const c = battle.isRaid ? Math.min(6, Math.max(0, Number(extraParam) || 0)) : 0;
+return {
+title: '🏹 鷹眼・精準援護',
+costText: c > 0 ? `消耗 ⚡${c} JP` : '⚡+1 JP',
+desc: `回復 ${baseHeal + bonus} HP（含思考×0.6）${c > 0 ? `，並為最低HP ${c} 人回 ${bonus} HP＋1 JP` : ''}`
+};
+}
+return { title: '💚 英雄治療', costText: '⚡+1 JP', desc: `回復 ${baseHeal} HP` };
+}
+
+function aimSelfForHeal(extraParam = 0, playLockSfx = true) {
+battle.healTargetPhase = true;
+battle.pendingHealParam = extraParam;
+battle.targetPhase = false;
+renderEnemies();
+
+const meta = getHealPreviewMeta(extraParam);
+const infoBox = document.getElementById('skill-info-box');
+infoBox.innerHTML = `<div class="skill-info-header"><span style="color:#fde047;font-weight:900;">${meta.title}</span><span style="color:#86efac;font-size:11.5px;font-weight:bold;">${meta.costText}</span></div><div style="color:#93c5fd;margin-top:2px;font-size:11.5px;">✨ ${meta.desc}</div>`;
+infoBox.style.display = 'block';
+
+const allyBox = document.getElementById('ally-box');
+const allyCross = document.getElementById('ally-crosshair');
+const raidBars = document.getElementById('raid-player-bars');
+if (allyBox) allyBox.classList.add('targetable');
+if (allyCross) allyCross.classList.add('show');
+if (battle.isRaid && raidBars) raidBars.classList.add('heal-targetable');
+
+if (playLockSfx) SoundFX.playTargetLock();
+setBattleLog(battle.isRaid ? '🎯 已瞄準自己！再點一次下方血條確認使用治療！' : '🎯 已瞄準自己！再點一次自己角色確認使用治療！');
+}
+
+function onSelfHealConfirm() {
+if (!battle.healTargetPhase || battle.phase !== 'action' || battle.busy) return;
+const param = battle.pendingHealParam || 0;
+executeRestAction(param);
+}
+
 
 function chooseMainAction(action) {
 if (battle.phase !== 'action' || battle.busy) return;
@@ -1907,7 +2069,7 @@ if (action === 'defend') {
 // 美國隊長於討伐戰且擁有 >=1 JP 時，可選擇額外消耗 1~3 JP 為血量比例最低的隊友上盾
 if (battle.isRaid && student.hero === '美國隊長' && battle.allyJp >= 1) {
 const st = getEffectiveStats().total;
-const shieldAmt = Math.max(1, Math.round(st.sta * 2));
+const shieldAmt = Math.max(1, Math.round(st.int * 1.2));
 battle.subMenuMode = 'heal_cap';
 battle.targetPhase = false;
 renderEnemies();
@@ -1929,14 +2091,13 @@ btn.disabled = battle.allyJp < needJp;
 }
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">🛡️ 美國隊長・振金保護盾治療</div><div>回復自身 20% HP，並加上 <b>體力×2 (${shieldAmt})</b> 保護盾！可額外消耗 1~3 JP 為目前血量比例最低的 1~3 位隊友加上同等保護盾。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('🛡️ 請選擇要額外守護的隊友人數（或只為自己上盾）！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
 // 蜘蛛俠於討伐戰且擁有 >=2 JP 時，可選擇額外消耗 2 JP 為我方全體玩家加 1 次 30% 迴避
-if (battle.isRaid && student.hero === '蜘蛛俠' && battle.allyJp >= 2) {
+if (battle.isRaid && student.hero === '蜘蛛俠' && battle.allyJp >= 4) {
 battle.subMenuMode = 'heal_spidey';
 battle.targetPhase = false;
 renderEnemies();
@@ -1949,15 +2110,14 @@ btn1.style.display = '';
 btn1.innerText = '僅自己必閃\n(⚡0 JP)';
 btn1.disabled = false;
 btn2.style.display = '';
-btn2.innerText = '全體+30%迴避\n(⚡2 JP)';
-btn2.disabled = battle.allyJp < 2;
+btn2.innerText = '全體+30%迴避\n(⚡4 JP)';
+btn2.disabled = battle.allyJp < 4;
 document.getElementById('sub-btn-3').style.display = 'none';
 document.getElementById('sub-btn-4').style.display = 'none';
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">🕷️ 蜘蛛俠・蜘蛛直覺治療</div><div>回復自身 20% HP，並獲得 <b>1 次必定迴避</b>！可額外消耗 <b>2 JP</b> 為我方全體玩家加上 <b>1 次 30% 迴避</b>。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('🕷️ 請選擇只強化自己，或消耗 2 JP 為我方全體加上 1 次 30% 迴避！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
@@ -1984,9 +2144,8 @@ btn.disabled = battle.allyJp < needJp;
 }
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">🔧 鋼鐵人・奈米修復治療</div><div>回復自身 20% HP，並加上「<b>修復</b>」狀態（答對關鍵步驟或答案回復 10% HP，持續 2 題）！可額外消耗 1~3 JP 為目前血量比例最低的 1~3 位隊友加上「修復」。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('🔧 請選擇要額外賦予「修復」狀態的隊友人數（或只為自己修復）！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
@@ -2019,9 +2178,8 @@ btn.style.display = 'none';
 }
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">⚡ 雷神索爾・雷霆鼓舞治療</div><div>回復自身 20% HP，並為自己<b>提升攻擊 2 次（+30%）</b>！可額外消耗 1~4 JP，每 1 JP 為我方隨機 5 位玩家提升攻擊 1 次（最多 4 JP 隨機 20 人）。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('⚡ 請選擇要額外鼓舞的隨機隊友人數（或只強化自己）！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
@@ -2043,16 +2201,15 @@ btn.disabled = battle.allyJp < needJp;
 }
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">🩺 浩克・醫生狀態治療</div><div>回復自身 20% HP，並施加「<b>醫生</b>」狀態 1 回合（攻擊後為血量最低玩家回復等同傷害的 HP）！可額外消耗 1~5 JP，每 1 JP 回合數 +1（最多 6 回合）。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('🩺 請選擇要消耗的 JP 以延長「醫生」狀態回合數！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
 // 黑寡婦於討伐戰且擁有 >=2 JP 時，可額外消耗 2/4/6 JP 為最低 HP 的 10/20/30 位玩家治療 思考×1 的 HP
 if (battle.isRaid && student.hero === '黑寡婦' && battle.allyJp >= 2) {
 const st = getEffectiveStats().total;
-const bonusHeal = Math.max(1, Math.round(st.int * 1));
+const bonusHeal = Math.max(1, Math.round(st.int * 1.5));
 battle.subMenuMode = 'heal_widow';
 battle.targetPhase = false;
 renderEnemies();
@@ -2074,9 +2231,8 @@ btn.disabled = battle.allyJp < jpNeeds[i - 1];
 }
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">💉 黑寡婦・戰術急救治療</div><div>回復自身 20% HP 並額外治療 <b>思考×1 (+${bonusHeal} HP)</b>！討伐戰可額外消耗 2/4/6 JP 為血量最低的 10/20/30 位玩家治療 ${bonusHeal} HP。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('💉 請選擇要額外治療的隊友人數（每 2 JP 治療 10 人，最多 6 JP 治療 30 人）！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
@@ -2100,13 +2256,12 @@ btn.disabled = battle.allyJp < needJp;
 }
 subRow.classList.add('show');
 const infoBox = document.getElementById('skill-info-box');
-infoBox.innerHTML = `<div style="color:#fde047;font-weight:900;">🏹 鷹眼・精準援護治療</div><div>回復自身 20% HP 並額外治療 <b>思考×0.6 (+${bonusHeal} HP)</b>！討伐戰可額外消耗 1~6 JP，為血量最低的 1~6 位玩家治療 ${bonusHeal} HP 並各回復 <b>+1 JP</b>。</div>`;
-infoBox.style.display = 'block';
-setBattleLog('🏹 請選擇要援護的最低血量隊友人數（1~6 JP，每人回血並 +1 JP）！');
+document.getElementById('sub-btn-1').classList.add('primed');
+aimSelfForHeal(0, true);
 return;
 }
 
-executeRestAction(0);
+aimSelfForHeal(0, true);
 return;
 }
 
@@ -2115,15 +2270,12 @@ if (action === 'attack') {
 battle.pendingAction = 'attack';
 battle.pendingSkillNum = null;
 const alive = battle.enemies.map((e, i) => e.alive ? i : -1).filter(i => i >= 0);
-if (alive.length === 1) {
-executePlayerAttack('attack', null, alive[0]);
-} else {
+if (alive.length === 0) return;
 battle.selectedTarget = alive[0];
 battle.targetPhase = true;
 renderEnemies();
 const firstTarget = battle.enemies[battle.selectedTarget];
-setBattleLog(`🎯 已鎖定【${firstTarget ? firstTarget.name : '敵人'}】，再按一次確定攻擊（或點其他敵人切換目標）！`);
-}
+setBattleLog(`🎯 已瞄準【${firstTarget ? firstTarget.name : '敵人'}】，再按一次該敵人確認攻擊！`);
 return;
 }
 
@@ -2146,27 +2298,33 @@ if (battle.phase !== 'action' || battle.busy) return;
 if (battle.subMenuMode === 'heal_cap' || battle.subMenuMode === 'heal_ironman' || battle.subMenuMode === 'heal_thor' || battle.subMenuMode === 'heal_hulk' || battle.subMenuMode === 'heal_hawkeye') {
 const extraCount = num - 1;
 if (battle.allyJp < extraCount) return;
-executeRestAction(extraCount);
+for (let i = 1; i <= 7; i++) {
+const b = document.getElementById(`sub-btn-${i}`);
+if (b) b.classList.toggle('primed', i === num);
+}
+aimSelfForHeal(extraCount, true);
 return;
 }
 if (battle.subMenuMode === 'heal_widow') {
 const jpNeeds = [0, 2, 4, 6];
 const needJp = jpNeeds[num - 1] || 0;
 if (battle.allyJp < needJp) return;
-executeRestAction(needJp);
+for (let i = 1; i <= 4; i++) document.getElementById(`sub-btn-${i}`).classList.toggle('primed', i === num);
+aimSelfForHeal(needJp, true);
 return;
 }
 if (battle.subMenuMode === 'heal_spidey') {
-const extraJp = num === 2 ? 2 : 0;
+const extraJp = num === 2 ? 4 : 0;
 if (battle.allyJp < extraJp) return;
-executeRestAction(extraJp);
+for (let i = 1; i <= 2; i++) document.getElementById(`sub-btn-${i}`).classList.toggle('primed', i === num);
+aimSelfForHeal(extraJp, true);
 return;
 }
 
 
 const sk = HERO_DATA[student.hero].skills[num - 1];
 const lv = student.upgrades.skills[num] || 0;
-const cost = SKILL_COSTS[num - 1];
+const cost = getSkillCost(sk, num - 1);
 if (lv <= 0 || battle.allyJp < cost) return;
 
 
@@ -2174,7 +2332,8 @@ for (let i = 1; i <= 4; i++) document.getElementById(`sub-btn-${i}`).classList.t
 const mult = Math.round((SKILL_BASE_MULT[num - 1] + lv * 0.2) * 100);
 const typeBadge = sk.t === 'all' ? ' [全體]' : ' [單體]';
 const infoBox = document.getElementById('skill-info-box');
-const fxLine = sk.desc ? `<div style="color:#93c5fd;margin-top:2px;font-size:11.5px;">✨ ${sk.desc}</div>` : '';
+const descStr = getSkillDescText(sk, lv);
+const fxLine = descStr ? `<div style="color:#93c5fd;margin-top:2px;font-size:11.5px;">✨ ${descStr}</div>` : '';
 infoBox.innerHTML = `<div class="skill-info-header"><span style="color:#fde047;font-weight:900;">${sk.n} (LV.${lv})${typeBadge}</span><span style="color:#f1f5f9;font-size:11.5px;font-weight:bold;">消耗 ⚡${cost} JP｜威力倍率：${mult}%</span></div>${fxLine}`;
 infoBox.style.display = 'block';
 
@@ -2188,15 +2347,12 @@ return;
 battle.pendingAction = 'skill';
 battle.pendingSkillNum = num;
 const alive = battle.enemies.map((e, i) => e.alive ? i : -1).filter(i => i >= 0);
-if (sk.t === 'single' && alive.length === 1) {
-executePlayerAttack('skill', num, alive[0]);
-return;
-}
+if (alive.length === 0) return;
 battle.selectedTarget = sk.t === 'all' ? null : alive[0];
 battle.targetPhase = true;
 renderEnemies();
 const firstSkillTarget = battle.selectedTarget !== null ? battle.enemies[battle.selectedTarget] : null;
-setBattleLog(sk.t === 'all' ? `⚡ 已預備【${sk.n}】，點擊任意敵人或再次點擊按鈕施放！` : `🎯 已鎖定【${firstSkillTarget ? firstSkillTarget.name : '敵人'}】，再按一次施放【${sk.n}】（或點其他敵人切換）！`);
+setBattleLog(sk.t === 'all' ? `⚡ 已預備【${sk.n}】，點擊任一瞄準中的敵人確認施放！` : `🎯 已瞄準【${firstSkillTarget ? firstSkillTarget.name : '敵人'}】，再按一次該敵人確認施放【${sk.n}】！`);
 }
 
 
@@ -2238,7 +2394,7 @@ const st = getEffectiveStats().total;
 const baseHeal = Math.max(1, Math.round(battle.allyMaxHp * 0.2));
 let extraSelfHeal = 0;
 if (student.hero === '黑寡婦') {
-extraSelfHeal = Math.max(1, Math.round(st.int * 1));
+extraSelfHeal = Math.max(1, Math.round(st.int * 1.5));
 } else if (student.hero === '鷹眼') {
 extraSelfHeal = Math.max(1, Math.round(st.int * 0.6));
 }
@@ -2268,13 +2424,13 @@ let restSkillName = '治療';
 if (student.hero === '美國隊長') {
 extraShieldCount = battle.isRaid ? Math.min(3, Math.max(0, Number(extraParam) || 0)) : 0;
 jpCost = extraShieldCount;
-shieldAmount = Math.max(1, Math.round(st.sta * 2));
+shieldAmount = Math.max(1, Math.round(st.int * 1.2));
 battle.buffs.shieldHp = Math.max(battle.buffs.shieldHp || 0, shieldAmount);
 restSkillName = '治療・振金護盾';
 } else if (student.hero === '蜘蛛俠') {
 spideyGuaranteedDodge = true;
-spideyTeamDodge = battle.isRaid && Number(extraParam) >= 2 && battle.allyJp >= 2;
-jpCost = spideyTeamDodge ? 2 : 0;
+spideyTeamDodge = battle.isRaid && Number(extraParam) >= 4 && battle.allyJp >= 4;
+jpCost = spideyTeamDodge ? 4 : 0;
 battle.buffs.guaranteedDodgeHits = (battle.buffs.guaranteedDodgeHits || 0) + 1;
 if (spideyTeamDodge) {
 battle.buffs.teamDodgeOnceCount = (battle.buffs.teamDodgeOnceCount || 0) + 1;
@@ -2292,8 +2448,8 @@ thorAtkBoost = true;
 thorExtraJp = battle.isRaid ? Math.min(4, Math.max(0, Number(extraParam) || 0)) : 0;
 thorTargetCount = thorExtraJp * 5;
 jpCost = thorExtraJp;
-battle.buffs.atkBoostCharges = (battle.buffs.atkBoostCharges || 0) + 2;
-battle.buffs.atkBoostPct = 30;
+battle.buffs.atkFlatTurns = Math.max(battle.buffs.atkFlatTurns || 0, 2);
+battle.buffs.atkFlatBonus = Math.max(battle.buffs.atkFlatBonus || 0, 5);
 restSkillName = thorExtraJp > 0 ? `治療・雷霆鼓舞(${thorTargetCount}人)` : '治療・雷霆鼓舞';
 } else if (student.hero === '浩克') {
 hulkDoctor = true;
@@ -2351,8 +2507,8 @@ VFXEngine.playSelfEffect('dodge');
 showComicSFX('EVADE!');
 showPassiveTag('🕷️ 獲得 1 次必定迴避');
 if (spideyTeamDodge) {
-showPassiveTag('💨 全體+30%迴避×1 (-2 JP)');
-setBattleLog('🕷️ 蜘蛛俠進入必定迴避狀態，並消耗 2 JP 為我方全體玩家加上 1 次 30% 迴避！');
+showPassiveTag('💨 全體+30%迴避×1 (-4 JP)');
+setBattleLog('🕷️ 蜘蛛俠進入必定迴避狀態，並消耗 4 JP 為我方全體玩家加上 1 次 30% 迴避！');
 } else {
 setBattleLog('🕷️ 蜘蛛俠啟動蜘蛛直覺，獲得 1 次必定迴避！');
 }
@@ -2375,12 +2531,12 @@ await sleep(920);
 SoundFX.playShield();
 VFXEngine.playSelfEffect('atkup');
 showComicSFX('POWER UP!');
-showPassiveTag('⚡ 攻擊提升 +30%（2次）');
+showPassiveTag('⚡ 攻擊 +5（2回合）');
 if (thorTargetCount > 0) {
 showPassiveTag(`⚡ 隨機鼓舞 ${thorTargetCount} 位隊友 (-${thorExtraJp} JP)`);
-setBattleLog(`⚡ 雷神索爾獲得 2 次攻擊提升，並為隨機 ${thorTargetCount} 位隊友提升攻擊 1 次！`);
+setBattleLog(`⚡ 雷神索爾 2 回合內攻擊+5，並為隨機 ${thorTargetCount} 位隊友提升攻擊+5（2回合）！`);
 } else {
-setBattleLog('⚡ 雷神索爾獲得雷霆鼓舞，接下來 2 次攻擊威力 +30%！');
+setBattleLog('⚡ 雷神索爾獲得雷霆鼓舞，2 回合內攻擊 +5！');
 }
 await sleep(850);
 } else if (hulkDoctor) {
@@ -2400,7 +2556,7 @@ if (widowTeamHealCount > 0) {
 showPassiveTag(`💉 治療最低HP ${widowTeamHealCount}人 (-${jpCost} JP)`);
 setBattleLog(`💉 黑寡婦施展戰術急救，額外回復 ${extraSelfHeal} HP，並為血量最低的 ${widowTeamHealCount} 位隊友各治療 ${widowTeamHealAmount} HP！`);
 } else {
-setBattleLog(`💉 黑寡婦施展戰術急救，額外回復思考×1（+${extraSelfHeal} HP）！`);
+setBattleLog(`💉 黑寡婦施展戰術急救，額外回復思考×1.5（+${extraSelfHeal} HP）！`);
 }
 await sleep(750);
 } else if (student.hero === '鷹眼') {
@@ -2429,7 +2585,7 @@ actionType: 'rest', heal: actualHeal, skillName: restSkillName,
 shieldAmount, extraShieldCount,
 teamDodgeAll: spideyTeamDodge, teamDodgePct: spideyTeamDodge ? 30 : 0,
 repairQuestions: ironManRepair ? 2 : 0, extraRepairCount,
-thorAtkBoostCount: thorTargetCount, thorAtkBoostPct: thorTargetCount > 0 ? 30 : 0,
+thorAtkBoostCount: thorTargetCount, thorAtkFlat: thorTargetCount > 0 ? 5 : 0, thorAtkTurns: thorTargetCount > 0 ? 2 : 0,
 doctorTurnsAdded: hulkDoctor ? hulkDoctorTurns : 0,
 widowTeamHealAmount, widowTeamHealCount,
 hawkeyeTeamHealAmount, hawkeyeTeamHealCount, hawkeyeTeamJp: hawkeyeTeamHealCount > 0 ? 1 : 0,
@@ -2460,10 +2616,10 @@ let skillFx = null;
 if (actionType === 'skill' && skillNum) {
 const sk = HERO_DATA[student.hero].skills[skillNum - 1];
 const lv = student.upgrades.skills[skillNum] || 1;
-const cost = SKILL_COSTS[skillNum - 1];
+const cost = getSkillCost(sk, skillNum - 1);
 skillName = sk.n;
 dmgMult = SKILL_BASE_MULT[skillNum - 1] + lv * 0.2;
-skillFx = sk.fx || null;
+skillFx = resolveSkillFx(sk, lv);
 
 
 if (mods.frugal > 0 && Math.random() * 100 < mods.frugal) {
@@ -2519,7 +2675,9 @@ weakTriggered = true;
 }
 
 
-const baseAtk = (actionType === 'skill' ? (st.atk + st.int * 0.4) : st.atk) * atkBuffMult;
+const flatAtk = (battle.buffs && battle.buffs.atkFlatTurns > 0) ? (battle.buffs.atkFlatBonus || 5) : 0;
+const effAtk = st.atk + flatAtk;
+const baseAtk = (actionType === 'skill' ? (effAtk + st.int * 0.4) : effAtk) * atkBuffMult;
 const extraStaDmg = (skillFx && skillFx.staDmgRatio) ? Math.round(st.sta * skillFx.staDmgRatio) : 0;
 const extraAgiDmg = (skillFx && skillFx.agiDmgRatio) ? Math.round(st.agi * skillFx.agiDmgRatio) : 0;
 const extraIntDmg = (skillFx && skillFx.intDmgRatio) ? Math.round(st.int * skillFx.intDmgRatio) : 0;
@@ -2539,7 +2697,7 @@ missingHpBonusShown = Math.max(missingHpBonusShown, bonusPct);
 }
 }
 if (enemy.armorBreakTurns > 0) {
-dmg = Math.round(dmg * 1.2);
+dmg += 5;
 }
 
 
@@ -2622,9 +2780,9 @@ const stunLabel = student.hero === '蜘蛛俠' ? '🕸️蛛網束縛 敵方暈�
 : '⚡雷電麻痺 敵方暈眩';
 showPassiveTag(stunLabel);
 } else if (weakenDebuffTriggered) {
-showPassiveTag('💫震盪 敵攻-30%');
+showPassiveTag('💫震盪 敵傷-5');
 }
-if (armorBreakTriggered) showPassiveTag('🔥破甲 敵方易傷+20%');
+if (armorBreakTriggered) showPassiveTag('🔥破甲 敵方受傷害+5');
 
 
 let skillHeal = 0;
@@ -2656,9 +2814,27 @@ battle.buffs.blockHits = Math.max(battle.buffs.blockHits, skillFx.blockHits);
 showPassiveTag('🛡️絕對防禦 格擋1次');
 }
 if (skillFx.refundJp > 0) {
+const chance = skillFx.refundJpChance !== undefined ? skillFx.refundJpChance : 100;
+if (Math.random() * 100 < chance) {
 battle.allyJp = Math.min(10, battle.allyJp + skillFx.refundJp);
 spawnLightParticle(skillFx.refundJp);
-showPassiveTag(`⚡能量充能 +${skillFx.refundJp} JP`);
+showPassiveTag(`⚡反應爐充能 +${skillFx.refundJp} JP`);
+}
+}
+if (skillFx.refundJpOnCrit > 0 && critTriggered) {
+battle.allyJp = Math.min(10, battle.allyJp + skillFx.refundJpOnCrit);
+spawnLightParticle(skillFx.refundJpOnCrit);
+showPassiveTag(`⚡暴擊返還 +${skillFx.refundJpOnCrit} JP`);
+}
+if (skillFx.atkFlatTurns > 0) {
+battle.buffs.atkFlatTurns = Math.max(battle.buffs.atkFlatTurns || 0, skillFx.atkFlatTurns);
+battle.buffs.atkFlatBonus = Math.max(battle.buffs.atkFlatBonus || 0, skillFx.atkFlatBonus || 5);
+showPassiveTag(`🔥攻擊 +${battle.buffs.atkFlatBonus}（${skillFx.atkFlatTurns}回合）`);
+}
+if (skillFx.staFlatTurns > 0) {
+battle.buffs.staFlatTurns = Math.max(battle.buffs.staFlatTurns || 0, skillFx.staFlatTurns);
+battle.buffs.staFlatBonus = Math.max(battle.buffs.staFlatBonus || 0, skillFx.staFlatBonus || 5);
+showPassiveTag(`💪體力 +${battle.buffs.staFlatBonus}（${skillFx.staFlatTurns}回合）`);
 }
 if (skillFx.dodgeUpTurns > 0) {
 battle.buffs.dodgeUpTurns = Math.max(battle.buffs.dodgeUpTurns, skillFx.dodgeUpTurns);
@@ -2898,15 +3074,16 @@ continue;
 
 
 // 答錯時無視我方所有防禦與減傷
+const flatSta = (battle.buffs && battle.buffs.staFlatTurns > 0) ? (battle.buffs.staFlatBonus || 5) : 0;
 let dmg = isWrongAnswer
 ? Math.max(1, Math.round(enemy.atk))
-: Math.max(1, Math.round(enemy.atk - st.sta * 0.25) - mods.tough);
+: Math.max(1, Math.round(enemy.atk - (st.sta + flatSta) * 0.25) - mods.tough);
 
 
 if (!isWrongAnswer && enemy.weakenTurns > 0) {
-dmg = Math.max(1, Math.round(dmg * 0.7));
+dmg = Math.max(1, dmg - 5);
 enemy.weakenTurns--;
-showPassiveTag('💫震盪 敵攻-30%');
+showPassiveTag('💫震盪 敵傷-5');
 }
 if (!isWrongAnswer && battle.buffs && battle.buffs.shieldTurns > 0) {
 dmg = Math.max(1, Math.round(dmg * (1 - battle.buffs.shieldPct / 100)));
@@ -2966,7 +3143,8 @@ await sleep(460);
 }
 
 
-// 回合結束遞減狀態持續回合
+// 正常回合結束才遞減狀態持續回合（答錯反擊不消耗增益回合）
+if (!isWrongAnswer) {
 if (battle.buffs && battle.buffs.shieldTurns > 0) {
 battle.buffs.shieldTurns--;
 if (battle.buffs.shieldTurns <= 0) battle.buffs.shieldPct = 0;
@@ -2975,9 +3153,19 @@ if (battle.buffs && battle.buffs.dodgeUpTurns > 0) {
 battle.buffs.dodgeUpTurns--;
 if (battle.buffs.dodgeUpTurns <= 0) battle.buffs.dodgeUpPct = 0;
 }
+if (battle.buffs && battle.buffs.atkFlatTurns > 0) {
+battle.buffs.atkFlatTurns--;
+if (battle.buffs.atkFlatTurns <= 0) battle.buffs.atkFlatBonus = 0;
+}
+if (battle.buffs && battle.buffs.staFlatTurns > 0) {
+battle.buffs.staFlatTurns--;
+if (battle.buffs.staFlatTurns <= 0) battle.buffs.staFlatBonus = 0;
+}
 battle.enemies.forEach(e => {
 if (e.armorBreakTurns > 0) e.armorBreakTurns--;
 });
+updateBattleBars();
+}
 
 
 if (battle.allyHp <= 0) {
@@ -3022,6 +3210,38 @@ updateActionButtons();
 }
 
 
+function rollFireEmblemLevelUp(heroName) {
+const g = (HERO_DATA[heroName] && HERO_DATA[heroName].growth) ? HERO_DATA[heroName].growth : [50, 40, 40, 40, 40, 40];
+const keys = ['hp', 'atk', 'sta', 'int', 'agi', 'luk'];
+const gains = { hp: 0, atk: 0, sta: 0, int: 0, agi: 0, luk: 0 };
+
+keys.forEach((k, idx) => {
+if (Math.random() * 100 < g[idx]) {
+gains[k] = k === 'hp' ? 10 : 1;
+}
+});
+
+// 保底至少跳 1 項屬性，避免完全零成長
+if (Object.values(gains).every(v => v === 0)) {
+const fallbackKey = keys[Math.floor(Math.random() * keys.length)];
+gains[fallbackKey] = fallbackKey === 'hp' ? 10 : 1;
+}
+
+const newLv = (student.levels[heroName] || 1) + 1;
+student.levels[heroName] = newLv;
+keys.forEach(k => {
+student.stats[k] = (student.stats[k] || 0) + gains[k];
+});
+
+if (gains.hp > 0) {
+battle.allyMaxHp += gains.hp;
+battle.allyHp = Math.min(battle.allyMaxHp, battle.allyHp + gains.hp);
+}
+document.getElementById('battle-student-name').innerText = `${heroName} LV.${newLv}`;
+updateBattleBars();
+return { newLv, gains };
+}
+
 async function handleWaveVictory() {
 const m = MISSION_DATA[battle.missionIndex];
 const mods = getPlayerModifiers();
@@ -3029,30 +3249,47 @@ const isBoss = battle.wave === 5;
 const baseReward = isBoss ? m.reward * 5 : m.reward * battle.enemies.length;
 const finalReward = Math.round(baseReward * (1 + mods.fortune / 100));
 
-
 student.money += finalReward;
 battle.missionMoneyEarned += finalReward;
 document.getElementById('battle-money').innerText = student.money;
 
-
-if (isBoss) {
-if ((student.unlockedMission || 0) <= battle.missionIndex && battle.missionIndex + 1 < MISSION_DATA.length) {
+if (isBoss && (student.unlockedMission || 0) <= battle.missionIndex && battle.missionIndex + 1 < MISSION_DATA.length) {
 student.unlockedMission = battle.missionIndex + 1;
 }
-await syncStudentProgress();
+
+// 火焰之紋章升級判斷：我方不計 HP 的能力總和 <= 該關戰力 × 5 時，每打完一場戰鬥即升級
+const nonHpSum = (student.stats.atk || 0) + (student.stats.sta || 0) + (student.stats.int || 0) + (student.stats.agi || 0) + (student.stats.luk || 0);
+let levelUpInfo = null;
+if (nonHpSum <= m.power * 5) {
+levelUpInfo = rollFireEmblemLevelUp(student.hero);
+}
+
+const proceedAfterVictory = async () => {
+if (isBoss) {
 battle.busy = false;
 showModal('🏆 任務勝利！', `成功擊敗首領【${m.boss.name}】！\n首領 5 倍賞金：+$${finalReward}\n本任務累計獲得總資金：$${battle.missionMoneyEarned}`, {
 onClose: () => backToLobby()
 });
 } else {
 setBattleLog(`🎉 第 ${battle.wave} 戰勝利！獲得 $${finalReward}，前進下一區域...`);
-await syncStudentProgress();
-await sleep(900);
+await sleep(750);
 battle.busy = false;
 spawnWave(battle.wave + 1);
 updateBattleBars();
 updateActionButtons();
 generateMathQuestion();
+}
+};
+
+await syncStudentProgress();
+
+if (levelUpInfo) {
+SoundFX.playLevelUp();
+showFEModal(student.hero, levelUpInfo.newLv, levelUpInfo.gains, () => {
+proceedAfterVictory();
+});
+} else {
+await proceedAfterVictory();
 }
 }
 
@@ -3072,7 +3309,7 @@ onClose: ok => { if (ok) backToLobby(); }
 }
 
 
-// ================= 數學出題引擎 (6:1 可約簡比例 + 動態難度) =================
+// ================= 數學出題引擎 (30:1 可約簡比例 + 5題1-10 / 1題1-20 循環) =================
 function isBossForcedLarge() {
 return !battle.isRaid && battle.wave === 5 && battle.missionIndex >= 2;
 }
@@ -3080,12 +3317,12 @@ return !battle.isRaid && battle.wave === 5 && battle.missionIndex >= 2;
 
 function generateMathQuestion() {
 const useLarge = isBossForcedLarge() || battle.quizDiff.tier === 'large';
-const wantReducible = Math.random() < (6 / 7); // 6:1 比例
+const wantReducible = Math.random() < (30 / 31); // 30:1 可約簡：無法約簡比例
 const maxN = useLarge ? 20 : 10;
 
 
 let q = null;
-for (let attempt = 0; attempt < 200; attempt++) {
+for (let attempt = 0; attempt < 400; attempt++) {
 const type = randInt(1, 3); // 1: 整數×真分數, 2: 真分數×真分數, 3: 真分數×帶分數
 let n1, d1, n2, d2, w2 = 0;
 if (type === 1) {
@@ -3106,11 +3343,13 @@ d2 = randInt(2, maxN);
 n2 = randInt(1, d2 - 1);
 }
 
+// 確保題目本身各分數皆已是最簡真分數，避免出現如 2/4 × 1/3 的假可約簡題
+if (gcd(n1, d1) > 1 || gcd(n2, d2) > 1) continue;
 
 const impN2 = w2 * d2 + n2;
-const gCross = gcd(n1, d2) > 1 || gcd(impN2, d1) > 1 || gcd(n1, d1) > 1 || gcd(impN2, d2) > 1;
-if (wantReducible && !gCross) continue;
-if (!wantReducible && gCross) continue;
+const canCrossCancel = gcd(n1, d2) > 1 || gcd(impN2, d1) > 1;
+if (wantReducible && !canCrossCancel) continue;
+if (!wantReducible && canCrossCancel) continue;
 if (useLarge && Math.max(n1, d1, impN2, d2) <= 10) continue;
 
 
@@ -3327,19 +3566,6 @@ const q = quiz.q;
 if (simpN !== q.ansN || simpD !== q.ansD) {
 // 答錯處理：紀錄動態難度錯誤 + 敵人破防反擊
 battle.quizDiff.hadErrorThisQ = true;
-if (!isBossForcedLarge()) {
-if (battle.quizDiff.tier === 'small') {
-battle.quizDiff.smallCleanStreak = 0;
-} else {
-battle.quizDiff.largeWrongCount++;
-if (battle.quizDiff.largeWrongCount > 4) {
-battle.quizDiff.tier = 'small';
-battle.quizDiff.smallCleanStreak = 0;
-battle.quizDiff.largeWrongCount = 0;
-showPassiveTag('📉 難度調整：回歸 1-10');
-}
-}
-}
 setBattleLog('❌ 計算有誤！敵人趁機發動破防攻擊！');
 await executeEnemyTurn(true);
 return;
@@ -3410,16 +3636,19 @@ row.locked = true;
 renderMathDisplay();
 
 
-// 動態難度更新（小怪戰與討伐戰：1-10 連續 2 題無計錯升級為 1-20）
+// 動態題型循環：每答完 5 題 1-10 題目 -> 出 1 題 1-20 題目 -> 重新計算 5 題 1-10（無限循環）
 if (!isBossForcedLarge()) {
-if (!battle.quizDiff.hadErrorThisQ && battle.quizDiff.tier === 'small') {
-battle.quizDiff.smallCleanStreak++;
-if (battle.quizDiff.smallCleanStreak >= 2) {
+if (battle.quizDiff.tier === 'small') {
+battle.quizDiff.smallDoneCount = (battle.quizDiff.smallDoneCount || 0) + 1;
+if (battle.quizDiff.smallDoneCount >= 5) {
 battle.quizDiff.tier = 'large';
-battle.quizDiff.smallCleanStreak = 0;
-battle.quizDiff.largeWrongCount = 0;
-showPassiveTag('📈 難度提升：1-20 進階題');
+battle.quizDiff.smallDoneCount = 0;
+showPassiveTag('📈 下一題：1-20 進階題');
 }
+} else {
+battle.quizDiff.tier = 'small';
+battle.quizDiff.smallDoneCount = 0;
+showPassiveTag('🔄 回歸 1-10（5題循環）');
 }
 }
 
@@ -3623,6 +3852,21 @@ osc.stop(startTime + idx * 0.045 + 0.26);
 });
 }
 
+function playTone(ctx, type, f1, f2, start, dur, vol) {
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.type = type;
+osc.frequency.setValueAtTime(f1, start);
+if (f2 !== f1) osc.frequency.exponentialRampToValueAtTime(Math.max(20, f2), start + dur);
+gain.gain.setValueAtTime(0.0001, start);
+gain.gain.exponentialRampToValueAtTime(vol, start + Math.min(0.02, dur * 0.2));
+gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+osc.connect(gain);
+gain.connect(ctx.destination);
+osc.start(start);
+osc.stop(start + dur + 0.02);
+}
+
 function playSkill(skillName, isCrit) {
 const ctx = getCtx();
 if (!ctx) return;
@@ -3630,133 +3874,210 @@ try {
 const now = ctx.currentTime;
 const name = String(skillName || '攻擊');
 
-if (/雷|閃電|索爾|阿斯嘉|寡婦/.test(name)) {
-// 雷電／電擊音效：高頻鋸齒脈衝 + 電弧雜訊
-[0, 0.06, 0.13].forEach((offset, i) => {
-const osc = ctx.createOscillator();
-const gain = ctx.createGain();
-osc.type = 'sawtooth';
-osc.frequency.setValueAtTime(920 - i * 160, now + offset);
-osc.frequency.exponentialRampToValueAtTime(210, now + offset + 0.08);
-gain.gain.setValueAtTime(0.0001, now + offset);
-gain.gain.exponentialRampToValueAtTime(0.09, now + offset + 0.01);
-gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.1);
-osc.connect(gain);
-gain.connect(ctx.destination);
-osc.start(now + offset);
-osc.stop(now + offset + 0.11);
+switch (name) {
+// --- 美國隊長 ---
+case '盾牌投擲':
+playNoiseBurst(ctx, now, 0.12, 1400, 0.08);
+playTone(ctx, 'triangle', 680, 1180, now + 0.09, 0.24, 0.12);
+playTone(ctx, 'sine', 1520, 1480, now + 0.1, 0.28, 0.07);
+break;
+case '正義衝鋒':
+playNoiseBurst(ctx, now, 0.18, 600, 0.13);
+playTone(ctx, 'sawtooth', 180, 420, now, 0.14, 0.08);
+playTone(ctx, 'triangle', 160, 55, now + 0.14, 0.22, 0.18);
+break;
+case '復仇者號令':
+[392, 523.25, 659.25, 783.99].forEach((f, i) => playTone(ctx, 'triangle', f, f * 1.01, now + i * 0.055, 0.32, 0.09));
+break;
+case '終極振金盾':
+playTone(ctx, 'sine', 130, 42, now, 0.36, 0.22);
+[523.25, 1046.5, 1567.98].forEach((f, i) => playTone(ctx, 'triangle', f, f * 0.98, now + 0.03 + i * 0.02, 0.42, 0.1));
+break;
+
+// --- 蜘蛛俠 ---
+case '蛛網射擊':
+playNoiseBurst(ctx, now, 0.08, 3200, 0.12);
+playTone(ctx, 'sine', 950, 260, now, 0.1, 0.09);
+playNoiseBurst(ctx, now + 0.09, 0.08, 2800, 0.1);
+break;
+case '擺盪踢擊':
+playTone(ctx, 'sine', 280, 880, now, 0.12, 0.08);
+playNoiseBurst(ctx, now + 0.11, 0.1, 1100, 0.14);
+playTone(ctx, 'triangle', 200, 65, now + 0.12, 0.14, 0.15);
+break;
+case '蜘蛛感應':
+[0, 0.05, 0.1, 0.15].forEach((o, i) => playTone(ctx, 'sine', 1200 + (i % 2) * 380, 1400, now + o, 0.06, 0.08));
+playNoiseBurst(ctx, now + 0.16, 0.16, 2200, 0.09);
+break;
+case '鋼鐵蜘蛛連擊':
+[0, 0.06, 0.12, 0.18].forEach((o, i) => {
+playTone(ctx, 'sawtooth', 750 + i * 160, 240, now + o, 0.07, 0.08);
+playNoiseBurst(ctx, now + o, 0.05, 2600, 0.09);
 });
-playNoiseBurst(ctx, now + 0.02, 0.22, 2600, 0.11);
-} else if (/飛彈|反應爐|爆炸|光束|脈衝|毀滅/.test(name)) {
-// 科技雷射／爆破音效：能量掃頻 + 低頻爆炸
-const laser = ctx.createOscillator();
-const lGain = ctx.createGain();
-laser.type = 'sawtooth';
-laser.frequency.setValueAtTime(1150, now);
-laser.frequency.exponentialRampToValueAtTime(140, now + 0.22);
-lGain.gain.setValueAtTime(0.0001, now);
-lGain.gain.exponentialRampToValueAtTime(0.1, now + 0.02);
-lGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-laser.connect(lGain);
-lGain.connect(ctx.destination);
-laser.start(now);
-laser.stop(now + 0.27);
-playNoiseBurst(ctx, now + 0.1, 0.28, 320, 0.16);
-} else if (/盾|美國|振金|號令|衝鋒/.test(name)) {
-// 振金盾牌：清脆金屬回響
-[523.25, 1174.66, 1760].forEach((freq, idx) => {
-const osc = ctx.createOscillator();
-const gain = ctx.createGain();
-osc.type = idx === 0 ? 'triangle' : 'sine';
-osc.frequency.setValueAtTime(freq, now + idx * 0.02);
-gain.gain.setValueAtTime(0.0001, now + idx * 0.02);
-gain.gain.exponentialRampToValueAtTime(idx === 0 ? 0.12 : 0.07, now + idx * 0.02 + 0.015);
-gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.02 + 0.34);
-osc.connect(gain);
-gain.connect(ctx.destination);
-osc.start(now + idx * 0.02);
-osc.stop(now + idx * 0.02 + 0.36);
+break;
+
+// --- 鋼鐵人 ---
+case '掌心脈衝':
+playTone(ctx, 'sine', 340, 1480, now, 0.12, 0.08);
+playTone(ctx, 'sawtooth', 880, 190, now + 0.12, 0.18, 0.12);
+playNoiseBurst(ctx, now + 0.12, 0.12, 1600, 0.1);
+break;
+case '微型飛彈':
+[0, 0.07, 0.14].forEach(o => playTone(ctx, 'sine', 600, 1100, now + o, 0.08, 0.05));
+[0.14, 0.22, 0.3].forEach(o => {
+playNoiseBurst(ctx, now + o, 0.18, 280, 0.15);
+playTone(ctx, 'sine', 110, 35, now + o, 0.16, 0.14);
 });
-} else if (/浩克|大地|狂怒|重擊/.test(name)) {
-// 重擊／震地：深沉低音衝擊
-const slam = ctx.createOscillator();
-const sGain = ctx.createGain();
-slam.type = 'sine';
-slam.frequency.setValueAtTime(150, now);
-slam.frequency.exponentialRampToValueAtTime(34, now + 0.3);
-sGain.gain.setValueAtTime(0.0001, now);
-sGain.gain.exponentialRampToValueAtTime(0.22, now + 0.015);
-sGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
-slam.connect(sGain);
-sGain.connect(ctx.destination);
-slam.start(now);
-slam.stop(now + 0.36);
-playNoiseBurst(ctx, now, 0.25, 220, 0.18);
-} else if (/箭|射擊/.test(name)) {
-// 弓箭射擊：弓弦彈響 + 破空聲
-const twang = ctx.createOscillator();
-const tGain = ctx.createGain();
-twang.type = 'triangle';
-twang.frequency.setValueAtTime(280, now);
-twang.frequency.exponentialRampToValueAtTime(760, now + 0.09);
-twang.frequency.exponentialRampToValueAtTime(190, now + 0.18);
-tGain.gain.setValueAtTime(0.0001, now);
-tGain.gain.exponentialRampToValueAtTime(0.11, now + 0.015);
-tGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
-twang.connect(tGain);
-tGain.connect(ctx.destination);
-twang.start(now);
-twang.stop(now + 0.22);
-playNoiseBurst(ctx, now + 0.04, 0.14, 1800, 0.09);
-} else if (/蛛網|蜘蛛|擺盪|連踢|絕殺|閃避/.test(name)) {
-// 高速連擊／蛛網破空
-[0, 0.08].forEach((offset, idx) => {
-const whip = ctx.createOscillator();
-const wGain = ctx.createGain();
-whip.type = 'sine';
-whip.frequency.setValueAtTime(420 + idx * 140, now + offset);
-whip.frequency.exponentialRampToValueAtTime(1250 + idx * 180, now + offset + 0.07);
-wGain.gain.setValueAtTime(0.0001, now + offset);
-wGain.gain.exponentialRampToValueAtTime(0.09, now + offset + 0.015);
-wGain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.11);
-whip.connect(wGain);
-wGain.connect(ctx.destination);
-whip.start(now + offset);
-whip.stop(now + offset + 0.12);
+break;
+case '鐳射光束':
+playTone(ctx, 'sawtooth', 1650, 920, now, 0.28, 0.09);
+playTone(ctx, 'square', 825, 460, now + 0.02, 0.26, 0.06);
+playNoiseBurst(ctx, now + 0.04, 0.22, 3400, 0.08);
+break;
+case '胸口反應爐砲':
+playTone(ctx, 'sine', 180, 1200, now, 0.16, 0.11);
+playTone(ctx, 'sawtooth', 420, 95, now + 0.15, 0.38, 0.14);
+playNoiseBurst(ctx, now + 0.15, 0.36, 520, 0.18);
+break;
+
+// --- 雷神索爾 ---
+case '雷神之鎚':
+playNoiseBurst(ctx, now, 0.14, 900, 0.1);
+playTone(ctx, 'triangle', 260, 70, now + 0.12, 0.22, 0.18);
+playNoiseBurst(ctx, now + 0.14, 0.18, 2800, 0.12);
+break;
+case '閃電風暴':
+[0, 0.08, 0.16].forEach((o, i) => {
+playTone(ctx, 'sawtooth', 1200 - i * 180, 180, now + o, 0.09, 0.09);
+playNoiseBurst(ctx, now + o, 0.16, 2400, 0.12);
 });
-playNoiseBurst(ctx, now + 0.03, 0.15, 2200, 0.08);
-} else {
-// 一般攻擊：俐落打擊聲
-const hit = ctx.createOscillator();
-const hGain = ctx.createGain();
-hit.type = 'triangle';
-hit.frequency.setValueAtTime(220, now);
-hit.frequency.exponentialRampToValueAtTime(65, now + 0.13);
-hGain.gain.setValueAtTime(0.0001, now);
-hGain.gain.exponentialRampToValueAtTime(0.16, now + 0.01);
-hGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
-hit.connect(hGain);
-hGain.connect(ctx.destination);
-hit.start(now);
-hit.stop(now + 0.16);
-playNoiseBurst(ctx, now, 0.09, 950, 0.1);
+playTone(ctx, 'sine', 110, 38, now + 0.12, 0.32, 0.16);
+break;
+case '阿斯嘉神力':
+[440, 554.37, 659.25, 880].forEach((f, i) => playTone(ctx, 'sine', f, f * 1.02, now + i * 0.04, 0.35, 0.08));
+playNoiseBurst(ctx, now + 0.1, 0.26, 1800, 0.11);
+break;
+case '風暴毀滅者':
+playTone(ctx, 'sawtooth', 980, 140, now, 0.18, 0.11);
+playTone(ctx, 'sine', 160, 32, now + 0.12, 0.42, 0.24);
+playNoiseBurst(ctx, now + 0.1, 0.36, 1900, 0.16);
+break;
+
+// --- 浩克 ---
+case '浩克重擊':
+playTone(ctx, 'sine', 170, 36, now, 0.26, 0.24);
+playNoiseBurst(ctx, now, 0.18, 340, 0.18);
+break;
+case '大地粉碎':
+playTone(ctx, 'sine', 120, 28, now, 0.4, 0.24);
+playNoiseBurst(ctx, now, 0.36, 180, 0.2);
+playNoiseBurst(ctx, now + 0.14, 0.25, 420, 0.14);
+break;
+case '狂怒咆哮':
+// 低沉咆哮音波震動（非雷射）
+playTone(ctx, 'sawtooth', 145, 68, now, 0.42, 0.16);
+playTone(ctx, 'triangle', 220, 92, now + 0.03, 0.38, 0.13);
+playNoiseBurst(ctx, now + 0.04, 0.36, 460, 0.15);
+break;
+case '無敵毀滅掌':
+// 巨響合掌氣爆
+playNoiseBurst(ctx, now, 0.09, 1600, 0.2);
+playTone(ctx, 'sine', 180, 30, now + 0.05, 0.38, 0.24);
+playNoiseBurst(ctx, now + 0.06, 0.32, 320, 0.18);
+break;
+
+// --- 黑寡婦 ---
+case '寡婦蟄針':
+[0, 0.07].forEach(o => {
+playTone(ctx, 'square', 1400, 520, now + o, 0.07, 0.08);
+playNoiseBurst(ctx, now + o, 0.07, 3600, 0.1);
+});
+break;
+case '格鬥連踢':
+[0, 0.08, 0.16].forEach((o, i) => {
+playNoiseBurst(ctx, now + o, 0.06, 1400 + i * 300, 0.12);
+playTone(ctx, 'triangle', 240 + i * 40, 80, now + o, 0.08, 0.12);
+});
+break;
+case '戰術閃避':
+playNoiseBurst(ctx, now, 0.16, 1800, 0.1);
+playTone(ctx, 'sine', 520, 1280, now + 0.06, 0.12, 0.08);
+playTone(ctx, 'triangle', 880, 260, now + 0.14, 0.12, 0.1);
+break;
+case '致命絕殺':
+playTone(ctx, 'sawtooth', 1800, 260, now, 0.11, 0.11);
+playTone(ctx, 'sawtooth', 2100, 300, now + 0.11, 0.12, 0.12);
+playNoiseBurst(ctx, now + 0.12, 0.18, 2900, 0.14);
+break;
+
+// --- 鷹眼 ---
+case '精準射擊':
+playTone(ctx, 'triangle', 260, 740, now, 0.08, 0.11);
+playNoiseBurst(ctx, now + 0.05, 0.1, 2400, 0.09);
+playTone(ctx, 'sine', 900, 320, now + 0.12, 0.08, 0.1);
+break;
+case '爆炸箭矢':
+playTone(ctx, 'triangle', 280, 720, now, 0.08, 0.1);
+playNoiseBurst(ctx, now + 0.14, 0.3, 280, 0.2);
+playTone(ctx, 'sine', 130, 36, now + 0.14, 0.3, 0.2);
+break;
+case '多重連珠箭':
+[0, 0.055, 0.11, 0.165, 0.22].forEach((o, i) => {
+playTone(ctx, 'triangle', 320 + i * 50, 860, now + o, 0.06, 0.08);
+playNoiseBurst(ctx, now + o + 0.02, 0.05, 2200, 0.07);
+});
+break;
+case '穿雲必殺箭':
+playTone(ctx, 'sine', 420, 1680, now, 0.16, 0.11);
+playNoiseBurst(ctx, now + 0.08, 0.26, 1900, 0.14);
+playTone(ctx, 'triangle', 220, 48, now + 0.16, 0.28, 0.18);
+break;
+
+// --- 一般攻擊 ---
+default:
+playTone(ctx, 'triangle', 220, 65, now, 0.13, 0.15);
+playNoiseBurst(ctx, now, 0.08, 950, 0.1);
+break;
 }
 
 if (isCrit) {
-playCritChime(ctx, now + 0.08);
+playCritChime(ctx, now + 0.1);
 }
 } catch (e) {}
 }
 
-return { playHeal, playShield, playDodge, playRepair, playTargetLock, playSkill };
+function playLevelUp() {
+const ctx = getCtx();
+if (!ctx) return;
+try {
+const now = ctx.currentTime;
+const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+notes.forEach((freq, idx) => {
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.type = 'triangle';
+osc.frequency.setValueAtTime(freq, now + idx * 0.085);
+gain.gain.setValueAtTime(0.0001, now + idx * 0.085);
+gain.gain.exponentialRampToValueAtTime(0.12, now + idx * 0.085 + 0.02);
+gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.085 + (idx === notes.length - 1 ? 0.5 : 0.22));
+osc.connect(gain);
+gain.connect(ctx.destination);
+osc.start(now + idx * 0.085);
+osc.stop(now + idx * 0.085 + (idx === notes.length - 1 ? 0.55 : 0.25));
+});
+} catch (e) {}
+}
+
+return { playHeal, playShield, playDodge, playRepair, playTargetLock, playSkill, playLevelUp };
 })();
 
 
 // ================= 強化版 Canvas 粒子特效引擎 (Battle + Host 共用) =================
 function createVFXEngine(canvasId, stageId) {
-let canvas, ctx, particles = [], beams = [], flashes = [], shockwaves = [], speedLines = [], hexShields = [], animId = null, running = false;
-const MAX_PARTICLES = 260;
-
+let canvas, ctx, particles = [], beams = [], flashes = [], shockwaves = [], speedLines = [], hexShields = [];
+let projectiles = [], slashes = [], roarArcs = [], fissures = [], webs = [], pillars = [];
+let animId = null, running = false;
+const MAX_PARTICLES = 280;
 
 function resize() {
 canvas = document.getElementById(canvasId);
@@ -3768,12 +4089,10 @@ canvas.height = rect.height;
 ctx = canvas.getContext('2d');
 }
 
-
 function pushParticle(p) {
 if (particles.length >= MAX_PARTICLES) particles.shift();
 particles.push(p);
 }
-
 
 function shakeStage(intensity = 6) {
 const stage = document.getElementById(stageId);
@@ -3784,57 +4103,260 @@ setTimeout(() => { stage.style.transform = `translate(${randInt(-intensity / 2, 
 setTimeout(() => { stage.style.transform = ''; }, 190);
 }
 
+function burstParticles(x, y, palette, count, speedMax, shape = 'circle', gravity = 0) {
+for (let i = 0; i < count; i++) {
+const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.45;
+const speed = 1.8 + Math.random() * speedMax;
+pushParticle({
+x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - (gravity > 0 ? 2.5 : 0),
+size: 2.5 + Math.random() * 4.2, color: palette[i % palette.length],
+life: 1.0, decay: 0.025 + Math.random() * 0.022, shape, gravity
+});
+}
+}
 
 function spawnEffect(sx, sy, tx, ty, skillName, isCrit) {
 resize();
 if (!ctx) return;
+const name = String(skillName || '攻擊');
 
-
-const palette = /雷|閃電|索爾|阿斯嘉/.test(skillName) ? ['#60a5fa', '#e0f2fe', '#facc15']
-: /火|飛彈|反應爐|爆炸|毀滅/.test(skillName) ? ['#f97316', '#ef4444', '#fde047']
-: /盾|美國|振金/.test(skillName) ? ['#3b82f6', '#ef4444', '#f8fafc']
-: /浩克|大地|狂怒/.test(skillName) ? ['#22c55e', '#86efac', '#facc15']
-: /蛛網|蜘蛛/.test(skillName) ? ['#e2e8f0', '#ef4444', '#60a5fa']
-: /箭|射擊/.test(skillName) ? ['#a855f7', '#fde047', '#f472b6']
-: ['#38bdf8', '#fde047', '#f472b6'];
-
-
-// 暗場壓暗 + 閃白
-flashes.push({ alpha: isCrit ? 0.45 : 0.25, dark: true, life: 1.0 });
+flashes.push({ alpha: isCrit ? 0.38 : 0.18, dark: true, life: 1.0 });
 if (isCrit) {
-speedLines.push({ cx: tx, cy: ty, life: 1.0, color: palette[2] });
+speedLines.push({ cx: tx, cy: ty, life: 1.0, color: '#fde047' });
 shakeStage(9);
 } else {
 shakeStage(5);
 }
 
+switch (name) {
+// ==================== 美國隊長 ====================
+case '盾牌投擲':
+projectiles.push({ kind: 'shield', sx, sy, tx, ty, t: 0, speed: 0.09, arc: -48, spin: 0, size: 22 });
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: isCrit ? 85 : 58, color: '#3b82f6', life: 1.0 });
+burstParticles(tx, ty, ['#3b82f6', '#ef4444', '#ffffff'], isCrit ? 30 : 20, 6.5);
+break;
 
-// 光束或分岔閃電
-const isLightning = /雷|閃電|索爾|寡婦/.test(skillName);
-beams.push({ sx, sy, tx, ty, color: palette[0], core: '#ffffff', width: isCrit ? 12 : 7, lightning: isLightning, life: 1.0 });
+case '正義衝鋒':
+slashes.push({ x: (sx + tx) * 0.5, y: (sy + ty) * 0.5, len: Math.hypot(tx - sx, ty - sy) * 0.75, ang: Math.atan2(ty - sy, tx - sx), color: '#60a5fa', core: '#fde047', width: 16, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 10, maxR: isCrit ? 90 : 66, color: '#fde047', life: 1.0 });
+hexShields.push({ x: sx, y: sy, r: 12, maxR: 46, life: 0.9, color: '#3b82f6', accent: '#fde047' });
+burstParticles(tx, ty, ['#3b82f6', '#fde047', '#ffffff'], isCrit ? 30 : 20, 7);
+break;
 
+case '復仇者號令':
+shockwaves.push({ x: sx, y: sy, r: 10, maxR: 120, color: '#fde047', life: 1.0 });
+pillars.push({ x: tx, y: ty, w: isCrit ? 52 : 36, color: '#fde047', core: '#93c5fd', life: 1.0 });
+burstParticles(tx, ty, ['#fde047', '#3b82f6', '#ffffff'], isCrit ? 26 : 18, 6, 'plus');
+break;
 
-// 命中衝擊波
-shockwaves.push({ x: tx, y: ty, r: 8, maxR: isCrit ? 95 : 62, color: palette[0], life: 1.0 });
-shockwaves.push({ x: tx, y: ty, r: 4, maxR: isCrit ? 65 : 42, color: '#ffffff', life: 0.9 });
+case '終極振金盾':
+projectiles.push({ kind: 'shield', sx, sy, tx, ty, t: 0, speed: 0.1, arc: -24, spin: 0, size: 30 });
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: 105, color: '#3b82f6', life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 4, maxR: 76, color: '#ef4444', life: 0.95 });
+shockwaves.push({ x: tx, y: ty, r: 2, maxR: 50, color: '#ffffff', life: 0.9 });
+burstParticles(tx, ty, ['#3b82f6', '#ef4444', '#ffffff', '#fde047'], 38, 8.5);
+break;
 
+// ==================== 蜘蛛俠 ====================
+case '蛛網射擊':
+projectiles.push({ kind: 'webstrand', sx, sy, tx, ty, t: 0, speed: 0.12, arc: -16, size: 10 });
+webs.push({ x: tx, y: ty, r: isCrit ? 48 : 38, color: '#f8fafc', life: 1.0 });
+burstParticles(tx, ty, ['#f8fafc', '#cbd5e1', '#60a5fa'], 18, 5);
+break;
 
-// 爆散火花與星芒
-const count = isCrit ? 38 : 24;
-for (let i = 0; i < count; i++) {
-const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
-const speed = 2.5 + Math.random() * (isCrit ? 9 : 6);
-pushParticle({
-x: tx, y: ty, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-size: 2.5 + Math.random() * 4.5, color: palette[i % palette.length],
-life: 1.0, decay: 0.028 + Math.random() * 0.025, shape: 'circle'
+case '擺盪踢擊':
+slashes.push({ x: tx, y: ty, len: 95, ang: -0.65, color: '#ef4444', core: '#ffffff', width: 12, life: 1.0 });
+slashes.push({ x: tx, y: ty - 14, len: 80, ang: -0.5, color: '#3b82f6', core: '#e0f2fe', width: 7, life: 0.9 });
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: 62, color: '#ef4444', life: 0.95 });
+burstParticles(tx, ty, ['#ef4444', '#3b82f6', '#ffffff'], 24, 6.5);
+break;
+
+case '蜘蛛感應':
+roarArcs.push({ x: sx, y: sy, r: 14, maxR: 130, ang: Math.atan2(ty - sy, tx - sx), spread: Math.PI * 2, color: '#60a5fa', core: '#f87171', width: 4, life: 1.0 });
+webs.push({ x: tx, y: ty, r: 34, color: '#93c5fd', life: 0.9 });
+burstParticles(tx, ty, ['#60a5fa', '#ef4444', '#ffffff'], 20, 6);
+break;
+
+case '鋼鐵蜘蛛連擊':
+[-0.9, -0.3, 0.35, 0.95].forEach((a, idx) => {
+slashes.push({ x: tx + (idx - 1.5) * 6, y: ty + (idx % 2 === 0 ? -6 : 6), len: 88, ang: a, color: idx % 2 === 0 ? '#fde047' : '#ef4444', core: '#ffffff', width: 9, life: 1.0 });
 });
-}
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: 82, color: '#fde047', life: 1.0 });
+burstParticles(tx, ty, ['#fde047', '#ef4444', '#38bdf8'], 34, 8);
+break;
 
+// ==================== 鋼鐵人 ====================
+case '掌心脈衝':
+beams.push({ sx, sy, tx, ty, color: '#38bdf8', core: '#ffffff', width: isCrit ? 12 : 8, lightning: false, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 6, maxR: 62, color: '#38bdf8', life: 1.0 });
+burstParticles(tx, ty, ['#38bdf8', '#e0f2fe', '#fde047'], 24, 6.5);
+break;
+
+case '微型飛彈':
+[-55, -22, 18].forEach((arc, idx) => {
+projectiles.push({ kind: 'missile', sx: sx + idx * 4, sy: sy - 8, tx: tx + (idx - 1) * 14, ty: ty + (idx - 1) * 8, t: 0, speed: 0.075 + idx * 0.01, arc, size: 8 });
+});
+shockwaves.push({ x: tx, y: ty, r: 10, maxR: 78, color: '#f97316', life: 1.0 });
+burstParticles(tx, ty, ['#f97316', '#ef4444', '#fde047', '#94a3b8'], 30, 7.5);
+break;
+
+case '鐳射光束':
+beams.push({ sx, sy: sy - 6, tx, ty: ty - 4, color: '#ef4444', core: '#fff1f2', width: isCrit ? 10 : 6, lightning: false, life: 1.0 });
+beams.push({ sx, sy: sy + 6, tx, ty: ty + 4, color: '#f97316', core: '#ffffff', width: isCrit ? 8 : 5, lightning: false, life: 0.95 });
+slashes.push({ x: tx, y: ty, len: 74, ang: 0.4, color: '#ef4444', core: '#ffffff', width: 6, life: 1.0 });
+burstParticles(tx, ty, ['#ef4444', '#fde047', '#ffffff'], 28, 7.5);
+break;
+
+case '胸口反應爐砲':
+beams.push({ sx, sy, tx, ty, color: '#38bdf8', core: '#ffffff', width: isCrit ? 26 : 20, lightning: false, life: 1.0 });
+shockwaves.push({ x: sx, y: sy, r: 8, maxR: 54, color: '#38bdf8', life: 0.9 });
+shockwaves.push({ x: tx, y: ty, r: 12, maxR: 105, color: '#38bdf8', life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 6, maxR: 72, color: '#fde047', life: 0.95 });
+burstParticles(tx, ty, ['#38bdf8', '#fde047', '#ffffff'], 38, 9);
+break;
+
+// ==================== 雷神索爾 ====================
+case '雷神之鎚':
+projectiles.push({ kind: 'hammer', sx, sy, tx, ty, t: 0, speed: 0.095, arc: -20, spin: 0, size: 22 });
+beams.push({ sx: tx, sy: 0, tx, ty, color: '#60a5fa', core: '#ffffff', width: 6, lightning: true, life: 0.85 });
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: 72, color: '#60a5fa', life: 1.0 });
+burstParticles(tx, ty, ['#60a5fa', '#e0f2fe', '#facc15'], 28, 7);
+break;
+
+case '閃電風暴':
+// 從天而降的閃電（而非從角色射光線）
+beams.push({ sx: tx + randInt(-25, 25), sy: 0, tx, ty, color: '#60a5fa', core: '#ffffff', width: isCrit ? 12 : 8, lightning: true, life: 1.0 });
+beams.push({ sx: tx + randInt(-40, 40), sy: 0, tx: tx + randInt(-12, 12), ty, color: '#facc15', core: '#ffffff', width: 5, lightning: true, life: 0.9 });
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: 70, color: '#60a5fa', life: 1.0 });
+burstParticles(tx, ty, ['#60a5fa', '#facc15', '#ffffff'], 26, 7.5);
+break;
+
+case '阿斯嘉神力':
+pillars.push({ x: tx, y: ty, w: isCrit ? 62 : 46, color: '#facc15', core: '#60a5fa', life: 1.0 });
+beams.push({ sx: tx, sy: 0, tx, ty, color: '#fde047', core: '#ffffff', width: 7, lightning: true, life: 0.95 });
+shockwaves.push({ x: tx, y: ty, r: 10, maxR: 88, color: '#facc15', life: 1.0 });
+burstParticles(tx, ty, ['#facc15', '#60a5fa', '#c084fc', '#ffffff'], 32, 8);
+break;
+
+case '風暴毀滅者':
+slashes.push({ x: tx, y: ty, len: 120, ang: -0.9, color: '#38bdf8', core: '#ffffff', width: 15, life: 1.0 });
+beams.push({ sx: tx, sy: 0, tx, ty, color: '#38bdf8', core: '#ffffff', width: 14, lightning: true, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 10, maxR: 110, color: '#38bdf8', life: 1.0 });
+burstParticles(tx, ty, ['#38bdf8', '#e0f2fe', '#fde047'], 40, 9.5);
+break;
+
+// ==================== 浩克（完全無雷射光束！） ====================
+case '浩克重擊':
+// 巨拳重擊衝擊波與碎石
+shockwaves.push({ x: tx, y: ty, r: 10, maxR: isCrit ? 96 : 74, color: '#22c55e', life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 6, maxR: 52, color: '#fde047', life: 0.9 });
+slashes.push({ x: tx, y: ty, len: 70, ang: 0.25, color: '#22c55e', core: '#bbf7d0', width: 18, life: 0.9 });
+burstParticles(tx, ty, ['#22c55e', '#86efac', '#facc15', '#a16207'], 34, 8, 'square', 0.22);
+shakeStage(10);
+break;
+
+case '大地粉碎':
+// 地面裂縫與飛散岩塊
+fissures.push({ sx, sy: sy + 28, tx, ty: ty + 24, color: '#a16207', glow: '#22c55e', life: 1.0 });
+shockwaves.push({ x: tx, y: ty + 16, r: 10, maxR: 92, color: '#a16207', life: 1.0 });
+shockwaves.push({ x: tx, y: ty + 16, r: 6, maxR: 64, color: '#22c55e', life: 0.95 });
+burstParticles(tx, ty + 10, ['#78350f', '#a16207', '#22c55e', '#fde047'], 36, 8.5, 'square', 0.28);
+shakeStage(12);
+break;
+
+case '狂怒咆哮':
+// 擴散音波氣浪（由浩克發出衝向敵人的多重弧形音波，完全非雷射！）
+{
+const roarAng = Math.atan2(ty - sy, tx - sx);
+roarArcs.push({ x: sx, y: sy - 10, r: 16, maxR: Math.hypot(tx - sx, ty - sy) + 70, ang: roarAng, spread: 1.15, color: '#22c55e', core: '#fde047', width: 8, life: 1.0 });
+roarArcs.push({ x: sx, y: sy - 10, r: 6, maxR: Math.hypot(tx - sx, ty - sy) + 40, ang: roarAng, spread: 1.35, color: '#86efac', core: '#ffffff', width: 5, life: 0.92 });
+roarArcs.push({ x: sx, y: sy - 10, r: 2, maxR: Math.hypot(tx - sx, ty - sy) + 15, ang: roarAng, spread: 1.5, color: '#facc15', core: '#22c55e', width: 4, life: 0.85 });
+shockwaves.push({ x: sx, y: sy, r: 14, maxR: 80, color: '#22c55e', life: 0.9 });
+burstParticles(tx, ty, ['#22c55e', '#86efac', '#fde047'], 24, 6.5);
+shakeStage(11);
+}
+break;
+
+case '無敵毀滅掌':
+// 雙掌合擊巨型衝擊氣波
+{
+const clapAng = Math.atan2(ty - sy, tx - sx);
+roarArcs.push({ x: sx + 10, y: sy, r: 18, maxR: Math.hypot(tx - sx, ty - sy) + 60, ang: clapAng, spread: 0.85, color: '#4ade80', core: '#ffffff', width: 12, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 12, maxR: 115, color: '#22c55e', life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 6, maxR: 80, color: '#ffffff', life: 0.95 });
+burstParticles(tx, ty, ['#22c55e', '#ffffff', '#fde047'], 42, 9.5);
+shakeStage(13);
+}
+break;
+
+// ==================== 黑寡婦 ====================
+case '寡婦蟄針':
+projectiles.push({ kind: 'dart', sx, sy: sy - 6, tx, ty: ty - 4, t: 0, speed: 0.14, arc: -8, size: 12 });
+projectiles.push({ kind: 'dart', sx, sy: sy + 6, tx, ty: ty + 4, t: 0, speed: 0.13, arc: 8, size: 12 });
+beams.push({ sx: tx - 22, sy: ty - 22, tx: tx + 22, ty: ty + 22, color: '#38bdf8', core: '#ffffff', width: 4, lightning: true, life: 0.9 });
+burstParticles(tx, ty, ['#38bdf8', '#e0f2fe', '#f43f5e'], 22, 6);
+break;
+
+case '格鬥連踢':
+[-0.7, 0.15, 0.85].forEach((a, i) => {
+slashes.push({ x: tx, y: ty + (i - 1) * 10, len: 82, ang: a, color: '#f43f5e', core: '#ffffff', width: 9, life: 1.0 });
+});
+burstParticles(tx, ty, ['#f43f5e', '#fde047', '#ffffff'], 24, 6.5);
+break;
+
+case '戰術閃避':
+slashes.push({ x: tx, y: ty, len: 95, ang: -0.4, color: '#e11d48', core: '#fda4af', width: 10, life: 1.0 });
+shockwaves.push({ x: sx, y: sy, r: 10, maxR: 60, color: '#94a3b8', life: 0.85 });
+burstParticles(sx, sy, ['#475569', '#94a3b8', '#e2e8f0'], 14, 4);
+burstParticles(tx, ty, ['#f43f5e', '#38bdf8', '#ffffff'], 22, 6.5);
+break;
+
+case '致命絕殺':
+flashes.push({ alpha: 0.52, dark: true, life: 1.0 });
+slashes.push({ x: tx, y: ty, len: 125, ang: 0.78, color: '#dc2626', core: '#ffffff', width: 13, life: 1.0 });
+slashes.push({ x: tx, y: ty, len: 125, ang: -0.78, color: '#dc2626', core: '#ffffff', width: 13, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 8, maxR: 92, color: '#ef4444', life: 1.0 });
+burstParticles(tx, ty, ['#dc2626', '#f43f5e', '#fde047', '#ffffff'], 38, 9);
+break;
+
+// ==================== 鷹眼 ====================
+case '精準射擊':
+projectiles.push({ kind: 'arrow', sx, sy, tx, ty, t: 0, speed: 0.15, arc: -10, size: 18, color: '#c084fc' });
+shockwaves.push({ x: tx, y: ty, r: 4, maxR: 48, color: '#fde047', life: 1.0 });
+burstParticles(tx, ty, ['#c084fc', '#fde047', '#ffffff'], 20, 6);
+break;
+
+case '爆炸箭矢':
+projectiles.push({ kind: 'arrow', sx, sy, tx, ty, t: 0, speed: 0.12, arc: -26, size: 18, color: '#f97316' });
+shockwaves.push({ x: tx, y: ty, r: 12, maxR: 98, color: '#f97316', life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 6, maxR: 68, color: '#ef4444', life: 0.95 });
+burstParticles(tx, ty, ['#f97316', '#ef4444', '#fde047', '#a855f7'], 36, 8.5);
+break;
+
+case '多重連珠箭':
+for (let k = 0; k < 5; k++) {
+projectiles.push({ kind: 'arrow', sx: tx - 90 + k * 24, sy: 0, tx: tx + (k - 2) * 10, ty: ty + (k % 2) * 8, t: 0, speed: 0.12 + k * 0.012, arc: -6, size: 15, color: k % 2 === 0 ? '#a855f7' : '#38bdf8' });
+}
+burstParticles(tx, ty, ['#a855f7', '#38bdf8', '#fde047'], 24, 6.5);
+break;
+
+case '穿雲必殺箭':
+projectiles.push({ kind: 'arrow', sx, sy, tx, ty, t: 0, speed: 0.14, arc: 0, size: 26, color: '#fde047' });
+roarArcs.push({ x: (sx + tx) * 0.5, y: (sy + ty) * 0.5, r: 8, maxR: 72, ang: Math.atan2(ty - sy, tx - sx), spread: 1.0, color: '#c084fc', core: '#fde047', width: 6, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 10, maxR: 108, color: '#fde047', life: 1.0 });
+burstParticles(tx, ty, ['#fde047', '#c084fc', '#ffffff'], 40, 9.5);
+break;
+
+// ==================== 一般攻擊（俐落物理斬擊，非雷射） ====================
+default:
+slashes.push({ x: tx, y: ty, len: isCrit ? 90 : 68, ang: -0.65, color: isCrit ? '#fde047' : '#f8fafc', core: '#ffffff', width: isCrit ? 11 : 7, life: 1.0 });
+shockwaves.push({ x: tx, y: ty, r: 6, maxR: isCrit ? 64 : 44, color: isCrit ? '#fde047' : '#e2e8f0', life: 0.9 });
+burstParticles(tx, ty, isCrit ? ['#fde047', '#f97316', '#ffffff'] : ['#f8fafc', '#fde047', '#94a3b8'], isCrit ? 26 : 16, 6);
+break;
+}
 
 if (!running) { running = true; loop(); }
 }
-
 
 function spawnHeal(x, y) {
 resize();
@@ -3842,8 +4364,6 @@ if (!ctx) return;
 const colors = ['#4ade80', '#86efac', '#fde047', '#ffffff'];
 shockwaves.push({ x, y, r: 10, maxR: 62, color: '#4ade80', life: 1.0 });
 shockwaves.push({ x, y, r: 4, maxR: 42, color: '#bbf7d0', life: 0.9 });
-
-
 for (let i = 0; i < 22; i++) {
 const isPlus = i % 3 === 0;
 pushParticle({
@@ -3853,15 +4373,12 @@ vx: (Math.random() - 0.5) * 1.0,
 vy: -(1.4 + Math.random() * 2.2),
 size: isPlus ? (6 + Math.random() * 3) : (2.5 + Math.random() * 3.5),
 color: colors[i % colors.length],
-life: 1.0,
-decay: 0.018 + Math.random() * 0.015,
-shape: isPlus ? 'plus' : 'circle',
-noDrag: true
+life: 1.0, decay: 0.018 + Math.random() * 0.015,
+shape: isPlus ? 'plus' : 'circle', noDrag: true
 });
 }
 if (!running) { running = true; loop(); }
 }
-
 
 function spawnShield(x, y) {
 resize();
@@ -3870,26 +4387,18 @@ const colors = ['#38bdf8', '#60a5fa', '#fde047', '#e0f2fe'];
 hexShields.push({ x, y, r: 14, maxR: 54, life: 1.0, color: '#38bdf8', accent: '#fde047' });
 shockwaves.push({ x, y, r: 10, maxR: 68, color: '#38bdf8', life: 1.0 });
 shockwaves.push({ x, y, r: 6, maxR: 50, color: '#fde047', life: 0.9 });
-
-
 for (let i = 0; i < 20; i++) {
 const angle = (Math.PI * 2 * i) / 20;
 const speed = 1.8 + Math.random() * 3.6;
 pushParticle({
-x: x + Math.cos(angle) * 18,
-y: y + Math.sin(angle) * 18,
-vx: Math.cos(angle) * speed,
-vy: Math.sin(angle) * speed,
-size: 2.5 + Math.random() * 3,
-color: colors[i % colors.length],
-life: 1.0,
-decay: 0.024 + Math.random() * 0.02,
-shape: 'circle'
+x: x + Math.cos(angle) * 18, y: y + Math.sin(angle) * 18,
+vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+size: 2.5 + Math.random() * 3, color: colors[i % colors.length],
+life: 1.0, decay: 0.024 + Math.random() * 0.02, shape: 'circle'
 });
 }
 if (!running) { running = true; loop(); }
 }
-
 
 function spawnShieldTransfer(sx, sy, tx, ty) {
 resize();
@@ -3923,12 +4432,9 @@ shockwaves.push({ x, y, r: 8, maxR: 60, color: '#38bdf8', life: 1.0 });
 shockwaves.push({ x, y, r: 4, maxR: 40, color: '#fde047', life: 0.9 });
 for (let i = 0; i < 20; i++) {
 pushParticle({
-x: x + (Math.random() - 0.5) * 56,
-y: y + (Math.random() - 0.5) * 32 + 12,
-vx: (Math.random() - 0.5) * 1.1,
-vy: -(1.5 + Math.random() * 2.1),
-size: i % 2 === 0 ? 6 : 3,
-color: colors[i % colors.length],
+x: x + (Math.random() - 0.5) * 56, y: y + (Math.random() - 0.5) * 32 + 12,
+vx: (Math.random() - 0.5) * 1.1, vy: -(1.5 + Math.random() * 2.1),
+size: i % 2 === 0 ? 6 : 3, color: colors[i % colors.length],
 life: 1.0, decay: 0.02 + Math.random() * 0.015,
 shape: i % 2 === 0 ? 'plus' : 'circle', noDrag: true
 });
@@ -3946,7 +4452,6 @@ if (kind === 'dodge') spawnDodge(tx, ty);
 else spawnRepair(tx, ty);
 }
 
-
 function drawHexagon(cx, cy, r) {
 ctx.beginPath();
 for (let i = 0; i < 6; i++) {
@@ -3958,7 +4463,6 @@ else ctx.lineTo(px, py);
 }
 ctx.closePath();
 }
-
 
 function drawLightningPath(sx, sy, tx, ty, segments = 7) {
 ctx.beginPath();
@@ -3972,11 +4476,9 @@ ctx.lineTo(tx, ty);
 ctx.stroke();
 }
 
-
 function loop() {
 if (!ctx || !canvas) { running = false; return; }
 ctx.clearRect(0, 0, canvas.width, canvas.height);
-
 
 // 暗場對比層
 for (let i = flashes.length - 1; i >= 0; i--) {
@@ -3986,7 +4488,6 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 f.life -= 0.08;
 if (f.life <= 0) flashes.splice(i, 1);
 }
-
 
 // 漫畫集中線
 for (let i = speedLines.length - 1; i >= 0; i--) {
@@ -4007,8 +4508,180 @@ sl.life -= 0.07;
 if (sl.life <= 0) speedLines.splice(i, 1);
 }
 
+// 天降光柱（復仇者號令／阿斯嘉神力）
+for (let i = pillars.length - 1; i >= 0; i--) {
+const pl = pillars[i];
+ctx.save();
+ctx.globalAlpha = pl.life * 0.65;
+const w = pl.w * pl.life;
+ctx.fillStyle = pl.color;
+ctx.fillRect(pl.x - w / 2, 0, w, pl.y + 30);
+ctx.fillStyle = pl.core;
+ctx.fillRect(pl.x - w * 0.22, 0, w * 0.44, pl.y + 30);
+ctx.restore();
+pl.life -= 0.055;
+if (pl.life <= 0) pillars.splice(i, 1);
+}
 
-// 光束 / 閃電
+// 地面裂縫（大地粉碎）
+for (let i = fissures.length - 1; i >= 0; i--) {
+const fs = fissures[i];
+ctx.save();
+ctx.globalAlpha = fs.life;
+ctx.lineCap = 'round';
+ctx.strokeStyle = fs.color;
+ctx.lineWidth = 8 * fs.life;
+drawLightningPath(fs.sx, fs.sy, fs.tx, fs.ty, 6);
+ctx.strokeStyle = fs.glow;
+ctx.lineWidth = 3 * fs.life;
+drawLightningPath(fs.sx, fs.sy, fs.tx, fs.ty, 6);
+ctx.restore();
+fs.life -= 0.045;
+if (fs.life <= 0) fissures.splice(i, 1);
+}
+
+// 音波氣浪弧線（狂怒咆哮／無敵毀滅掌／蜘蛛感應／穿雲必殺箭）
+for (let i = roarArcs.length - 1; i >= 0; i--) {
+const ra = roarArcs[i];
+ra.r += (ra.maxR - ra.r) * 0.16;
+ctx.save();
+ctx.globalAlpha = ra.life;
+ctx.lineCap = 'round';
+ctx.shadowBlur = 14;
+ctx.shadowColor = ra.color;
+ctx.strokeStyle = ra.color;
+ctx.lineWidth = ra.width * ra.life;
+ctx.beginPath();
+ctx.arc(ra.x, ra.y, ra.r, ra.ang - ra.spread * 0.5, ra.ang + ra.spread * 0.5);
+ctx.stroke();
+ctx.strokeStyle = ra.core;
+ctx.lineWidth = Math.max(1.5, ra.width * 0.4 * ra.life);
+ctx.beginPath();
+ctx.arc(ra.x, ra.y, ra.r * 0.94, ra.ang - ra.spread * 0.45, ra.ang + ra.spread * 0.45);
+ctx.stroke();
+ctx.restore();
+ra.life -= 0.045;
+if (ra.life <= 0) roarArcs.splice(i, 1);
+}
+
+// 蛛網覆蓋（蛛網射擊／蜘蛛感應）
+for (let i = webs.length - 1; i >= 0; i--) {
+const wb = webs[i];
+ctx.save();
+ctx.globalAlpha = wb.life * 0.9;
+ctx.strokeStyle = wb.color;
+ctx.lineWidth = 1.8;
+const spokes = 8;
+for (let s = 0; s < spokes; s++) {
+const a = (Math.PI * 2 * s) / spokes;
+ctx.beginPath();
+ctx.moveTo(wb.x, wb.y);
+ctx.lineTo(wb.x + Math.cos(a) * wb.r, wb.y + Math.sin(a) * wb.r);
+ctx.stroke();
+}
+[0.38, 0.7, 1.0].forEach(scale => {
+ctx.beginPath();
+for (let s = 0; s <= spokes; s++) {
+const a = (Math.PI * 2 * s) / spokes;
+const px = wb.x + Math.cos(a) * wb.r * scale;
+const py = wb.y + Math.sin(a) * wb.r * scale;
+if (s === 0) ctx.moveTo(px, py);
+else ctx.lineTo(px, py);
+}
+ctx.stroke();
+});
+ctx.restore();
+wb.life -= 0.032;
+if (wb.life <= 0) webs.splice(i, 1);
+}
+
+// 斬擊／連踢／衝鋒弧線
+for (let i = slashes.length - 1; i >= 0; i--) {
+const sl = slashes[i];
+ctx.save();
+ctx.translate(sl.x, sl.y);
+ctx.rotate(sl.ang);
+ctx.globalAlpha = sl.life;
+ctx.shadowBlur = 12;
+ctx.shadowColor = sl.color;
+ctx.strokeStyle = sl.color;
+ctx.lineCap = 'round';
+ctx.lineWidth = sl.width * sl.life;
+ctx.beginPath();
+ctx.moveTo(-sl.len * 0.5, 0);
+ctx.quadraticCurveTo(0, -sl.len * 0.18, sl.len * 0.5, 0);
+ctx.stroke();
+ctx.strokeStyle = sl.core;
+ctx.lineWidth = Math.max(1.5, sl.width * 0.35 * sl.life);
+ctx.beginPath();
+ctx.moveTo(-sl.len * 0.45, 0);
+ctx.quadraticCurveTo(0, -sl.len * 0.16, sl.len * 0.45, 0);
+ctx.stroke();
+ctx.restore();
+sl.life -= 0.075;
+if (sl.life <= 0) slashes.splice(i, 1);
+}
+
+// 飛行道具（盾牌／雷神鎚／箭矢／飛彈／蛛絲／蟄針）
+for (let i = projectiles.length - 1; i >= 0; i--) {
+const pr = projectiles[i];
+pr.t += pr.speed;
+if (pr.t >= 1) { projectiles.splice(i, 1); continue; }
+const u = pr.t;
+const mx = (pr.sx + pr.tx) * 0.5;
+const my = (pr.sy + pr.ty) * 0.5 + (pr.arc || 0);
+const x = (1 - u) * (1 - u) * pr.sx + 2 * (1 - u) * u * mx + u * u * pr.tx;
+const y = (1 - u) * (1 - u) * pr.sy + 2 * (1 - u) * u * my + u * u * pr.ty;
+const dx = 2 * (1 - u) * (mx - pr.sx) + 2 * u * (pr.tx - mx);
+const dy = 2 * (1 - u) * (my - pr.sy) + 2 * u * (pr.ty - my);
+const ang = Math.atan2(dy, dx);
+
+ctx.save();
+if (pr.kind === 'shield') {
+pr.spin = (pr.spin || 0) + 0.45;
+ctx.translate(x, y);
+ctx.rotate(pr.spin);
+ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.arc(0, 0, pr.size, 0, Math.PI * 2); ctx.fill();
+ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.arc(0, 0, pr.size * 0.72, 0, Math.PI * 2); ctx.fill();
+ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.arc(0, 0, pr.size * 0.5, 0, Math.PI * 2); ctx.fill();
+ctx.fillStyle = '#1d4ed8'; ctx.beginPath(); ctx.arc(0, 0, pr.size * 0.3, 0, Math.PI * 2); ctx.fill();
+} else if (pr.kind === 'hammer') {
+pr.spin = (pr.spin || 0) + 0.5;
+ctx.translate(x, y);
+ctx.rotate(pr.spin);
+ctx.fillStyle = '#92400e'; ctx.fillRect(-3, 2, 6, pr.size * 0.9);
+ctx.fillStyle = '#cbd5e1'; ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2;
+ctx.fillRect(-pr.size * 0.65, -pr.size * 0.45, pr.size * 1.3, pr.size * 0.65);
+ctx.strokeRect(-pr.size * 0.65, -pr.size * 0.45, pr.size * 1.3, pr.size * 0.65);
+} else if (pr.kind === 'arrow') {
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.shadowBlur = 10; ctx.shadowColor = pr.color || '#c084fc';
+ctx.strokeStyle = pr.color || '#c084fc'; ctx.lineWidth = 3.5;
+ctx.beginPath(); ctx.moveTo(-pr.size, 0); ctx.lineTo(pr.size, 0); ctx.stroke();
+ctx.fillStyle = '#ffffff';
+ctx.beginPath(); ctx.moveTo(pr.size + 6, 0); ctx.lineTo(pr.size - 4, -5); ctx.lineTo(pr.size - 4, 5); ctx.closePath(); ctx.fill();
+} else if (pr.kind === 'missile') {
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.fillStyle = '#e2e8f0'; ctx.fillRect(-8, -3, 14, 6);
+ctx.fillStyle = '#f97316'; ctx.beginPath(); ctx.arc(-9, 0, 5, 0, Math.PI * 2); ctx.fill();
+pushParticle({ x, y, vx: (Math.random() - 0.5) * 1.2, vy: (Math.random() - 0.5) * 1.2, size: 3.5, color: '#fde047', life: 0.7, decay: 0.06, shape: 'circle' });
+} else if (pr.kind === 'webstrand') {
+ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2.5;
+ctx.beginPath(); ctx.moveTo(pr.sx, pr.sy); ctx.lineTo(x, y); ctx.stroke();
+ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+} else if (pr.kind === 'dart') {
+ctx.translate(x, y);
+ctx.rotate(ang);
+ctx.shadowBlur = 10; ctx.shadowColor = '#38bdf8';
+ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 4;
+ctx.beginPath(); ctx.moveTo(-pr.size, 0); ctx.lineTo(pr.size, 0); ctx.stroke();
+}
+ctx.restore();
+}
+
+// 光束 / 閃電（僅用於光束／雷電／增益傳導技能）
 for (let i = beams.length - 1; i >= 0; i--) {
 const b = beams[i];
 ctx.save();
@@ -4020,8 +4693,6 @@ ctx.strokeStyle = b.color;
 ctx.lineWidth = b.width * b.life;
 if (b.lightning) drawLightningPath(b.sx, b.sy, b.tx, b.ty);
 else { ctx.beginPath(); ctx.moveTo(b.sx, b.sy); ctx.lineTo(b.tx, b.ty); ctx.stroke(); }
-
-
 ctx.strokeStyle = b.core;
 ctx.lineWidth = Math.max(1.5, b.width * 0.45 * b.life);
 if (b.lightning) drawLightningPath(b.sx, b.sy, b.tx, b.ty, 6);
@@ -4030,7 +4701,6 @@ ctx.restore();
 b.life -= 0.075;
 if (b.life <= 0) beams.splice(i, 1);
 }
-
 
 // 衝擊波
 for (let i = shockwaves.length - 1; i >= 0; i--) {
@@ -4048,7 +4718,6 @@ sw.life -= 0.07;
 if (sw.life <= 0) shockwaves.splice(i, 1);
 }
 
-
 // 六角形能量護盾罩
 for (let i = hexShields.length - 1; i >= 0; i--) {
 const hs = hexShields[i];
@@ -4058,8 +4727,6 @@ ctx.globalAlpha = hs.life * 0.3;
 ctx.fillStyle = hs.color;
 drawHexagon(hs.x, hs.y, hs.r);
 ctx.fill();
-
-
 ctx.globalAlpha = hs.life * 0.95;
 ctx.strokeStyle = hs.color;
 ctx.shadowBlur = 14;
@@ -4067,8 +4734,6 @@ ctx.shadowColor = hs.color;
 ctx.lineWidth = 3.5 * hs.life;
 drawHexagon(hs.x, hs.y, hs.r);
 ctx.stroke();
-
-
 ctx.strokeStyle = hs.accent;
 ctx.lineWidth = 1.6 * hs.life;
 drawHexagon(hs.x, hs.y, hs.r * 0.72);
@@ -4078,12 +4743,12 @@ hs.life -= 0.032;
 if (hs.life <= 0) hexShields.splice(i, 1);
 }
 
-
 // 粒子
 for (let i = particles.length - 1; i >= 0; i--) {
 const p = particles[i];
 p.x += p.vx;
 p.y += p.vy;
+if (p.gravity) p.vy += p.gravity;
 if (!p.noDrag) {
 p.vx *= 0.94;
 p.vy *= 0.94;
@@ -4101,11 +4766,12 @@ const s = p.size * (0.6 + p.life * 0.4);
 ctx.lineWidth = 2.4;
 ctx.lineCap = 'round';
 ctx.beginPath();
-ctx.moveTo(p.x - s, p.y);
-ctx.lineTo(p.x + s, p.y);
-ctx.moveTo(p.x, p.y - s);
-ctx.lineTo(p.x, p.y + s);
+ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y);
+ctx.moveTo(p.x, p.y - s); ctx.lineTo(p.x, p.y + s);
 ctx.stroke();
+} else if (p.shape === 'square') {
+const s = p.size * (0.5 + p.life * 0.6);
+ctx.fillRect(p.x - s * 0.5, p.y - s * 0.5, s, s);
 } else {
 ctx.beginPath();
 ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
@@ -4114,20 +4780,18 @@ ctx.fill();
 ctx.restore();
 }
 
-
-if (particles.length || beams.length || flashes.length || shockwaves.length || speedLines.length || hexShields.length) {
+if (particles.length || beams.length || flashes.length || shockwaves.length || speedLines.length || hexShields.length || projectiles.length || slashes.length || roarArcs.length || fissures.length || webs.length || pillars.length) {
 animId = requestAnimationFrame(loop);
 } else {
 running = false;
 }
 }
 
-
 function clear() {
 particles = []; beams = []; flashes = []; shockwaves = []; speedLines = []; hexShields = [];
+projectiles = []; slashes = []; roarArcs = []; fissures = []; webs = []; pillars = [];
 if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
-
 
 return {
 resize, clear, spawnEffect, spawnHeal, spawnShield, spawnShieldTransfer, spawnDodge, spawnRepair, spawnBuffTransfer,
@@ -4157,7 +4821,6 @@ const aRect = allyEl ? allyEl.getBoundingClientRect() : sRect;
 const sx = battle.isRaid ? sRect.width * 0.5 : (aRect.left - sRect.left + aRect.width * 0.65);
 const sy = battle.isRaid ? sRect.height * 0.85 : (aRect.top - sRect.top + aRect.height * 0.55);
 
-
 targetIndices.forEach(idx => {
 const tEl = document.getElementById(`enemy-unit-${idx}`);
 const tRect = tEl ? tEl.getBoundingClientRect() : sRect;
@@ -4168,7 +4831,6 @@ spawnEffect(sx, sy, tx, ty, skillName, isCrit);
 }
 };
 }
-
 
 const VFXEngine = createVFXEngine('vfx-canvas', 'battle-stage');
 const HostVFX = createVFXEngine('host-vfx-canvas', 'host-battle-stage');
@@ -4302,7 +4964,7 @@ return BATTLE_BGS[num % BATTLE_BGS.length];
 async function openRaidHost() {
 const msg = document.getElementById('login-msg');
 msg.innerText = '🔥 正在建立討伐戰房間...';
-const res = await sendToGAS({ action: 'createRaid', bossName: '終極薩諾斯', bossIcon: '😈' });
+const res = await sendToGAS({ action: 'createRaid', bossName: '終極薩諾斯', bossIcon: RAID_BOSS_IMG });
 if (!res.success) {
 msg.innerText = '❌ ' + (res.message || '建立失敗');
 return;
@@ -4388,10 +5050,11 @@ raid.status === 'active' ? '⚔️ 全員討伐激戰中！' :
 raid.status === 'victory' ? '🏆 討伐成功！BIG BOSS 已被擊敗！' : '🛑 討伐已結束';
 
 
-document.getElementById('host-boss-title').innerText = `${raid.bossIcon} ${raid.bossName}`;
+const raidBossImg = /^https?:\/\//i.test(String(raid.bossIcon || '')) ? raid.bossIcon : RAID_BOSS_IMG;
+document.getElementById('host-boss-title').innerText = formatBossTitle(raid.bossIcon, raid.bossName);
 document.getElementById('host-boss-hp-text').innerText = `${raid.bossHp} / ${raid.bossMaxHp}`;
 document.getElementById('host-boss-hp-fill').style.width = `${Math.max(0, Math.min(100, (raid.bossHp / raid.bossMaxHp) * 100))}%`;
-document.getElementById('host-boss-avatar').innerText = raid.bossIcon;
+document.getElementById('host-boss-avatar').innerHTML = renderAvatarHtml(raidBossImg, raid.bossName);
 
 
 const bs = raid.bossStats || { atk: 10, sta: 10, int: 10, agi: 10, luk: 10 };
@@ -4600,7 +5263,7 @@ ab.className = 'host-hero-action-bubble';
 ab.style.background = '#facc15';
 ab.style.borderColor = '#b45309';
 ab.style.color = '#0f172a';
-ab.innerText = `⚡ 攻擊UP +${log.thorAtkBoostPct || 30}%`;
+ab.innerText = `⚡ 攻擊+${log.thorAtkFlat || 5}(${log.thorAtkTurns || 2}回)`;
 targetEl.appendChild(ab);
 setTimeout(() => { targetEl.classList.remove('acting'); ab.remove(); }, 1050);
 }, 1200 + idx * 120);
@@ -4672,7 +5335,7 @@ function showHostRaidResult(raid) {
 currentRaidResultData = raid;
 const isWin = raid.status === 'victory' || raid.bossHp <= 0;
 document.getElementById('raid-result-title').innerText = isWin ? '🏆 討伐成功！BIG BOSS 已被擊敗！' : '📊 討伐戰結束！戰績龍虎榜';
-document.getElementById('raid-result-sub').innerText = `${raid.bossIcon} ${raid.bossName} 剩餘HP：${raid.bossHp} / ${raid.bossMaxHp}｜參戰特工：${raid.players.length} 人`;
+document.getElementById('raid-result-sub').innerText = `${formatBossTitle(raid.bossIcon, raid.bossName)} 剩餘HP：${raid.bossHp} / ${raid.bossMaxHp}｜參戰特工：${raid.players.length} 人`;
 switchRaidResultTab('dmg');
 document.getElementById('raid-result-modal').classList.add('show');
 }
@@ -4783,8 +5446,8 @@ battle.pendingAction = null;
 battle.pendingSkillNum = null;
 battle.selectedTarget = null;
 battle.subMenuMode = null;
-battle.quizDiff = { tier: 'small', smallCleanStreak: 0, largeWrongCount: 0, hadErrorThisQ: false };
-battle.buffs = { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 };
+battle.quizDiff = { tier: 'small', smallDoneCount: 0, hadErrorThisQ: false };
+battle.buffs = { shieldHp: 0, shieldTurns: 0, shieldPct: 0, atkUpTurns: 0, atkUpPct: 0, atkFlatTurns: 0, atkFlatBonus: 0, staFlatTurns: 0, staFlatBonus: 0, blockHits: 0, dodgeUpTurns: 0, dodgeUpPct: 0, guaranteeCounter: 0, guaranteedDodgeHits: 0, teamDodgeOnceCount: 0, teamDodgeOncePct: 30, repairQuestions: 0, atkBoostCharges: 0, atkBoostPct: 30, doctorTurns: 0 };
 
 
 raidClient.pin = raid.pin;
@@ -4826,7 +5489,8 @@ waitOverlay.classList.remove('show');
 }
 
 
-document.getElementById('raid-boss-name').innerText = `${raid.bossIcon} ${raid.bossName}`;
+const raidBossImg = /^https?:\/\//i.test(String(raid.bossIcon || '')) ? raid.bossIcon : RAID_BOSS_IMG;
+document.getElementById('raid-boss-name').innerText = formatBossTitle(raid.bossIcon, raid.bossName);
 document.getElementById('raid-boss-hp-text').innerText = `${raid.bossHp} / ${raid.bossMaxHp}`;
 document.getElementById('raid-boss-hp-bar').style.width = `${Math.max(0, Math.min(100, (raid.bossHp / raid.bossMaxHp) * 100))}%`;
 
@@ -4834,7 +5498,7 @@ document.getElementById('raid-boss-hp-bar').style.width = `${Math.max(0, Math.mi
 const bs = raid.bossStats || { atk: 10, sta: 10, int: 10, agi: 10, luk: 10 };
 if (battle.enemies.length === 0) {
 battle.enemies = [{
-name: raid.bossName, icon: raid.bossIcon,
+name: raid.bossName, icon: raidBossImg,
 maxHp: raid.bossMaxHp, hp: raid.bossHp,
 atk: Math.max(6, Math.round(bs.atk * 0.55)),
 sta: Math.max(1, Math.round(bs.sta * 0.5)),
@@ -4886,16 +5550,16 @@ showComicSFX('REPAIR!');
 showPassiveTag(`🔧 ${b.from || '鋼鐵人'} 賜予修復（${qCount}題）`);
 setBattleLog(`🔧 獲得【${b.from || '鋼鐵人'}】的「修復」狀態（答對步驟或答案回復 10% HP，持續 ${qCount} 題）！`);
 } else if (b.type === 'atk_boost') {
-const pct = Math.round(Number(b.pct) || 30);
-const charges = Math.max(1, Math.round(Number(b.charges) || 1));
-battle.buffs.atkBoostCharges = (battle.buffs.atkBoostCharges || 0) + charges;
-battle.buffs.atkBoostPct = pct;
+const flat = Math.max(1, Math.round(Number(b.flat) || 5));
+const turns = Math.max(1, Math.round(Number(b.turns) || 2));
+battle.buffs.atkFlatTurns = Math.max(battle.buffs.atkFlatTurns || 0, turns);
+battle.buffs.atkFlatBonus = Math.max(battle.buffs.atkFlatBonus || 0, flat);
 updateBattleBars();
 SoundFX.playShield();
 VFXEngine.playSelfEffect('atkup');
-showComicSFX('ATK UP!');
-showPassiveTag(`⚡ ${b.from || '雷神索爾'} 鼓舞 攻擊+${pct}%×${charges}`);
-setBattleLog(`⚡ 獲得【${b.from || '雷神索爾'}】的雷霆鼓舞（下 ${charges} 次攻擊威力 +${pct}%）！`);
+showComicSFX('ATK +5!');
+showPassiveTag(`⚡ ${b.from || '雷神索爾'} 鼓舞 攻擊+${flat}(${turns}回)`);
+setBattleLog(`⚡ 獲得【${b.from || '雷神索爾'}】的雷霆鼓舞（${turns} 回合內攻擊 +${flat}）！`);
 } else if (b.type === 'doctor_heal') {
 const amt = Math.max(1, Math.round(Number(b.amount) || 0));
 battle.allyHp = Math.min(battle.allyMaxHp, battle.allyHp + amt);
