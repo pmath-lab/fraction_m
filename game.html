@@ -450,7 +450,7 @@ body.host-mode #app { width: 100vw !important; height: 100dvh !important; transf
 .host-ctrl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 
-.host-battle-stage { flex: 1; position: relative; background: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.45) 100%), url('https://pmath-lab.github.io/fractions_m/mbg12.jpg') center/cover no-repeat; border: 2.5px solid #d4af63; border-radius: 12px; overflow: hidden; min-height: 0; box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55); }
+.host-battle-stage { flex: 1; position: relative; background: linear-gradient(180deg, rgba(15, 23, 42, 0.25) 0%, rgba(15, 23, 42, 0.45) 100%), url('https://pmath-lab.github.io/fraction_m/mbg12.jpg') center/cover no-repeat; border: 2.5px solid #d4af63; border-radius: 12px; overflow: hidden; min-height: 0; box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55); }
 .host-stage-badge { position: absolute; top: 10px; left: 12px; z-index: 25; background: rgba(15, 23, 42, 0.88); color: #fde047; border: 1.5px solid #d4af63; border-radius: 8px; padding: 5px 12px; font-size: 14px; font-weight: 900; display: flex; align-items: center; gap: 10px; }
 
 
@@ -907,7 +907,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbznxfHsuesPngDn822-ngZt
 
 const HERO_DATA = {
 '美國隊長': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO1.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO1.png',
 growth: [50, 40, 60, 40, 40, 40],
 skills: [
 { n: '盾牌投擲', t: 'single', cost: 2, desc: v => `附加體力×${Math.round(v.staDmgRatio*100)}%額外傷害，並令目標震盪（下次攻擊傷害-5）`, fx: { staDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], weakenEnemy: 1 } },
@@ -917,7 +917,7 @@ skills: [
 ]
 },
 '蜘蛛俠': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO2.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO2.png',
 growth: [40, 50, 40, 50, 55, 55],
 skills: [
 { n: '蛛網射擊', t: 'single', cost: 2, desc: v => `附加敏捷×${Math.round(v.agiDmgRatio*100)}%額外傷害，45%機率束縛敵人1回合（未觸發則敵下次攻擊傷害-5）`, fx: { agiDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], stunChance: 45, weakenEnemy: 1 } },
@@ -927,7 +927,7 @@ skills: [
 ]
 },
 '鋼鐵人': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO3.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO3.png',
 growth: [45, 45, 50, 60, 50, 40],
 skills: [
 { n: '掌心脈衝', t: 'single', cost: 2, desc: v => `附加思考×${Math.round(v.intDmgRatio*100)}%額外傷害，45%機率反應爐充能返還1點JP`, fx: { intDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], refundJp: 1, refundJpChance: 45 } },
@@ -937,7 +937,7 @@ skills: [
 ]
 },
 '雷神索爾': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO4.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO4.png',
 growth: [55, 55, 45, 45, 45, 45],
 skills: [
 { n: '雷神之鎚', t: 'single', cost: 2, desc: v => `附加攻擊×${Math.round(v.atkDmgRatio*100)}%額外傷害，35%機率麻痺敵人1回合，附加1回合「破甲」（受傷害+5）`, fx: { atkDmgRatio: [0.20,0.22,0.24,0.26,0.28,0.30,0.32,0.34,0.35], stunChance: 35, armorBreakTurns: 1 } },
@@ -947,7 +947,7 @@ skills: [
 ]
 },
 '浩克': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO5.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO5.png',
 growth: [70, 70, 65, 25, 30, 30],
 skills: [
 { n: '浩克重擊', t: 'single', cost: 2, desc: v => `附加攻擊×50%額外傷害，並附帶${v.lifestealPct}%傷害吸血回復自身HP`, fx: { atkDmgRatio: 0.5, lifestealPct: [20,22,24,26,28,30,32,34,35] } },
@@ -957,7 +957,7 @@ skills: [
 ]
 },
 '黑寡婦': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO6.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO6.png',
 growth: [35, 45, 35, 60, 60, 55],
 skills: [
 { n: '寡婦蟄針', t: 'single', cost: 2, desc: v => `附加思考×${Math.round(v.intDmgRatio*100)}%額外傷害，40%機率電擊麻痺1回合，附加1回合「破甲」（受傷害+5）`, fx: { intDmgRatio: [0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60], stunChance: 40, armorBreakTurns: 1 } },
@@ -967,7 +967,7 @@ skills: [
 ]
 },
 '鷹眼': {
-img: 'https://pmath-lab.github.io/fractions_m/HERO7.png',
+img: 'https://pmath-lab.github.io/fraction_m/HERO7.png',
 growth: [35, 55, 35, 55, 55, 55],
 skills: [
 { n: '精準射擊', t: 'single', cost: 2, desc: v => `無視敵人${v.ignoreDefPct}%防禦，暴擊率+30%，暴擊時返還1點JP`, fx: { ignoreDefPct: [20,22,24,26,28,30,32,34,35], critBonus: 30, refundJpOnCrit: 1 } },
@@ -1027,10 +1027,10 @@ const MOD_DESC = {
 };
 
 
-const BATTLE_BGS = Array.from({ length: 12 }, (_, i) => `https://pmath-lab.github.io/fractions_m/mbg${i + 1}.jpg`);
+const BATTLE_BGS = Array.from({ length: 12 }, (_, i) => `https://pmath-lab.github.io/fraction_m/mbg${i + 1}.jpg`);
 
 
-const RAID_BOSS_IMG = 'https://pmath-lab.github.io/fractions_m/marvel_foe14.png';
+const RAID_BOSS_IMG = 'https://pmath-lab.github.io/fraction_m/marvel_foe14.png';
 
 function renderAvatarHtml(icon, altText) {
 const val = String(icon || '');
@@ -1047,18 +1047,18 @@ return `${prefix} ${name}`;
 }
 
 const MISSION_DATA = [
-{ name: '紐約保衛戰', power: 100, reward: 120, bg: BATTLE_BGS[0], speaker: '尼克·福瑞', story: '特工！齊塔瑞先鋒部隊已經突破曼哈頓防線，立刻運用分數乘法能量阻止他們！', boss: { name: '齊塔瑞指揮官', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe1.png' } },
-{ name: '九頭蛇基地', power: 160, reward: 180, bg: BATTLE_BGS[1], speaker: '瑪莉亞·希爾', story: '偵測到九頭蛇在雪地基地秘密測試能量武器，請立即潛入並瓦解敵軍！', boss: { name: '紅骷髏殘影', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe2.png' } },
-{ name: '蘇科維亞危機', power: 240, reward: 260, bg: BATTLE_BGS[2], speaker: '鋼鐵人', story: '奧創的機械大軍正在集結！小心，從這關開始首領戰將全面啟用 1-20 進階題！', boss: { name: '奧創主機', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe3.png' } },
-{ name: '瓦干達前線', power: 340, reward: 360, bg: BATTLE_BGS[3], speaker: '黑豹特使', story: '外星先鋒衛正猛攻瓦干達能量護盾，展現復仇者的最強實力吧！', boss: { name: '暗夜比鄰星', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe4.png' } },
-{ name: '阿斯嘉彩虹橋', power: 460, reward: 480, bg: BATTLE_BGS[4], speaker: '海姆達爾', story: '火巨人與冰霜巨魔侵入九界通道，守護阿斯嘉的榮耀就靠你了！', boss: { name: '洛基幻影', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe5.png' } },
-{ name: '泰坦星決戰', power: 600, reward: 650, bg: BATTLE_BGS[5], speaker: '奇異博士', story: '在 1400 萬種未來中，只有精準計算分數的英雄才能擊敗無限寶石的威脅！', boss: { name: '黑曜獵手', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe6.png' } },
-{ name: '量子領域突圍', power: 780, reward: 850, bg: BATTLE_BGS[6], speaker: '蟻人', story: '量子通道出現時空異常，敵軍戰力大幅飆升，集中精神破解每一道算式！', boss: { name: '征服者康幻象', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe7.png' } },
-{ name: '復仇者總部終局', power: 980, reward: 1100, bg: BATTLE_BGS[7], speaker: '尼克·福瑞', story: '終局之戰正式打響！所有特工全力以赴，迎戰宇宙級終極威脅！', boss: { name: '薩諾斯分身', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe8.png' } },
-{ name: '黑暗維度裂縫', power: 1200, reward: 1400, bg: BATTLE_BGS[8], speaker: '奇異博士', story: '多元宇宙邊界出現黑暗裂縫，神秘強敵正在吞噬時間與空間！', boss: { name: '多瑪暮化身', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe9.png' } },
-{ name: '虛無之地圍城', power: 1450, reward: 1750, bg: BATTLE_BGS[9], speaker: '雷神索爾', story: '宇宙海盜與軍團聯手封鎖虛無之地，以雷霆之勢突破重圍吧！', boss: { name: '指控者羅南', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe10.png' } },
-{ name: '死亡神域審判', power: 1750, reward: 2150, bg: BATTLE_BGS[10], speaker: '海姆達爾', story: '古老的死亡神力再次甦醒，唯有最精密的分數運算能斬斷宿命！', boss: { name: '死亡女神海拉', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe11.png' } },
-{ name: '無限多元終戰', power: 2100, reward: 2600, bg: BATTLE_BGS[11], speaker: '尼克·福瑞', story: '這是最終試煉！集合全復仇者之力，擊敗統治多元宇宙的終極霸主！', boss: { name: '無限奧創', icon: 'https://pmath-lab.github.io/fractions_m/marvel_foe12.png' } }
+{ name: '紐約保衛戰', power: 100, reward: 120, bg: BATTLE_BGS[0], speaker: '尼克·福瑞', story: '特工！齊塔瑞先鋒部隊已經突破曼哈頓防線，立刻運用分數乘法能量阻止他們！', boss: { name: '齊塔瑞指揮官', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe1.png' } },
+{ name: '九頭蛇基地', power: 160, reward: 180, bg: BATTLE_BGS[1], speaker: '瑪莉亞·希爾', story: '偵測到九頭蛇在雪地基地秘密測試能量武器，請立即潛入並瓦解敵軍！', boss: { name: '紅骷髏殘影', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe2.png' } },
+{ name: '蘇科維亞危機', power: 240, reward: 260, bg: BATTLE_BGS[2], speaker: '鋼鐵人', story: '奧創的機械大軍正在集結！小心，從這關開始首領戰將全面啟用 1-20 進階題！', boss: { name: '奧創主機', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe3.png' } },
+{ name: '瓦干達前線', power: 340, reward: 360, bg: BATTLE_BGS[3], speaker: '黑豹特使', story: '外星先鋒衛正猛攻瓦干達能量護盾，展現復仇者的最強實力吧！', boss: { name: '暗夜比鄰星', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe4.png' } },
+{ name: '阿斯嘉彩虹橋', power: 460, reward: 480, bg: BATTLE_BGS[4], speaker: '海姆達爾', story: '火巨人與冰霜巨魔侵入九界通道，守護阿斯嘉的榮耀就靠你了！', boss: { name: '洛基幻影', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe5.png' } },
+{ name: '泰坦星決戰', power: 600, reward: 650, bg: BATTLE_BGS[5], speaker: '奇異博士', story: '在 1400 萬種未來中，只有精準計算分數的英雄才能擊敗無限寶石的威脅！', boss: { name: '黑曜獵手', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe6.png' } },
+{ name: '量子領域突圍', power: 780, reward: 850, bg: BATTLE_BGS[6], speaker: '蟻人', story: '量子通道出現時空異常，敵軍戰力大幅飆升，集中精神破解每一道算式！', boss: { name: '征服者康幻象', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe7.png' } },
+{ name: '復仇者總部終局', power: 980, reward: 1100, bg: BATTLE_BGS[7], speaker: '尼克·福瑞', story: '終局之戰正式打響！所有特工全力以赴，迎戰宇宙級終極威脅！', boss: { name: '薩諾斯分身', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe8.png' } },
+{ name: '黑暗維度裂縫', power: 1200, reward: 1400, bg: BATTLE_BGS[8], speaker: '奇異博士', story: '多元宇宙邊界出現黑暗裂縫，神秘強敵正在吞噬時間與空間！', boss: { name: '多瑪暮化身', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe9.png' } },
+{ name: '虛無之地圍城', power: 1450, reward: 1750, bg: BATTLE_BGS[9], speaker: '雷神索爾', story: '宇宙海盜與軍團聯手封鎖虛無之地，以雷霆之勢突破重圍吧！', boss: { name: '指控者羅南', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe10.png' } },
+{ name: '死亡神域審判', power: 1750, reward: 2150, bg: BATTLE_BGS[10], speaker: '海姆達爾', story: '古老的死亡神力再次甦醒，唯有最精密的分數運算能斬斷宿命！', boss: { name: '死亡女神海拉', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe11.png' } },
+{ name: '無限多元終戰', power: 2100, reward: 2600, bg: BATTLE_BGS[11], speaker: '尼克·福瑞', story: '這是最終試煉！集合全復仇者之力，擊敗統治多元宇宙的終極霸主！', boss: { name: '無限奧創', icon: 'https://pmath-lab.github.io/fraction_m/marvel_foe12.png' } }
 ];
 
 
