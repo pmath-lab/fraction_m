@@ -1228,7 +1228,10 @@ if (cb) cb();
 // ================= 強化與裝備數值計算 =================
 function ensureUpgradesStruct(stObj) {
 if (!stObj.upgrades) stObj.upgrades = {};
-if (!stObj.upgrades.skills) stObj.upgrades.skills = { 1: 0, 2: 0, 3: 0, 4: 0 };
+if (!stObj.upgrades.skills) stObj.upgrades.skills = { 1: 1, 2: 1, 3: 1, 4: 1 };
+[1, 2, 3, 4].forEach(k => {
+if (!stObj.upgrades.skills[k] || Number(stObj.upgrades.skills[k]) < 1) stObj.upgrades.skills[k] = 1;
+});
 if (!stObj.upgrades.equips) {
 stObj.upgrades.equips = {
 head: { lv: 0, mod: '' }, hands: { lv: 0, mod: '' },
@@ -1469,20 +1472,20 @@ list.innerHTML = '';
 if (currentUpgradeTab === 'skill') {
 const skills = HERO_DATA[student.hero].skills;
 for (let i = 1; i <= 4; i++) {
-const lv = student.upgrades.skills[i] || 0;
-const cost = (lv + 1) * 500;
+const lv = Math.max(1, Number(student.upgrades.skills[i]) || 1);
+const cost = lv * 500;
 const isMax = lv >= 9;
 const sk = skills[i - 1];
 const typeTag = sk.t === 'all' ? '<span style="color:#f87171;font-size:12px;">[全體]</span>' : '<span style="color:#60a5fa;font-size:12px;">[單體]</span>';
 const descStr = getSkillDescText(sk, Math.max(1, lv));
 const fxDescHtml = descStr ? `<div style="font-size:12px;color:#fcd34d;margin-top:2px;">✨ ${descStr}</div>` : '';
 const jpCostSkill = getSkillCost(sk, i - 1);
-const btnHtml = isMax ? `<button class="upg-btn locked">MAX</button>` : `<button class="upg-btn" onclick="buySkillUpgrade(${i}, ${cost})">${lv === 0 ? '解鎖' : '升級'} ($<span class="num-font">${cost}</span>)</button>`;
+const btnHtml = isMax ? `<button class="upg-btn locked">MAX</button>` : `<button class="upg-btn" onclick="buySkillUpgrade(${i}, ${cost})">升級 ($<span class="num-font">${cost}</span>)</button>`;
 list.innerHTML += `
 <div class="upg-item">
 <div class="upg-info">
 <div class="upg-title">${sk.n} ${typeTag}</div>
-<div class="upg-desc">${lv === 0 ? '未解鎖' : `技能傷害 +<span class="num-font">${lv * 20}</span>%`}（⚡${jpCostSkill} JP）</div>
+<div class="upg-desc">技能傷害 +<span class="num-font">${lv * 20}</span>%（⚡${jpCostSkill} JP）</div>
 ${fxDescHtml}
 </div>
 <div class="upg-action">
@@ -1535,7 +1538,7 @@ list.innerHTML += `
 async function buySkillUpgrade(num, cost) {
 if (student.money < cost) { showModal('資金不足', `需要 $${cost} 才能強化技能。`); return; }
 student.money -= cost;
-student.upgrades.skills[num] = (student.upgrades.skills[num] || 0) + 1;
+student.upgrades.skills[num] = Math.max(1, Number(student.upgrades.skills[num]) || 1) + 1;
 renderUpgradeCenter();
 await syncStudentProgress();
 }
@@ -1928,10 +1931,9 @@ if (canAct) {
 const skills = HERO_DATA[student.hero].skills;
 for (let i = 1; i <= 4; i++) {
 const btn = document.getElementById(`sub-btn-${i}`);
-const lv = student.upgrades.skills[i] || 0;
 const cost = getSkillCost(skills[i - 1], i - 1);
-btn.innerText = lv === 0 ? `${skills[i - 1].n}\n(未解鎖)` : `${skills[i - 1].n}\n⚡${cost} JP`;
-btn.disabled = lv === 0 || battle.allyJp < cost;
+btn.innerText = `${skills[i - 1].n}\n⚡${cost} JP`;
+btn.disabled = battle.allyJp < cost;
 }
 }
 }
@@ -2323,9 +2325,9 @@ return;
 
 
 const sk = HERO_DATA[student.hero].skills[num - 1];
-const lv = student.upgrades.skills[num] || 0;
+const lv = Math.max(1, Number(student.upgrades.skills[num]) || 1);
 const cost = getSkillCost(sk, num - 1);
-if (lv <= 0 || battle.allyJp < cost) return;
+if (battle.allyJp < cost) return;
 
 
 for (let i = 1; i <= 4; i++) document.getElementById(`sub-btn-${i}`).classList.toggle('primed', i === num);
@@ -2684,7 +2686,7 @@ const extraIntDmg = (skillFx && skillFx.intDmgRatio) ? Math.round(st.int * skill
 const extraAtkDmg = (skillFx && skillFx.atkDmgRatio) ? Math.round(st.atk * skillFx.atkDmgRatio) : 0;
 const extraLukDmg = (skillFx && skillFx.lukDmgRatio) ? Math.round(st.luk * skillFx.lukDmgRatio) : 0;
 const extraHpDmg = (skillFx && skillFx.maxHpDmgRatio) ? Math.round(battle.allyMaxHp * skillFx.maxHpDmgRatio) : 0;
-let dmg = Math.max(1, Math.round(baseAtk * dmgMult - enemySta * 0.3) + extraStaDmg + extraAgiDmg + extraIntDmg + extraAtkDmg + extraLukDmg + extraHpDmg);
+let dmg = Math.max(1, Math.round(baseAtk * 2 * dmgMult - enemySta) + extraStaDmg + extraAgiDmg + extraIntDmg + extraAtkDmg + extraLukDmg + extraHpDmg);
 if (skillFx && skillFx.bonusDmgPct > 0) {
 dmg = Math.round(dmg * (1 + skillFx.bonusDmgPct / 100));
 }
@@ -3076,8 +3078,8 @@ continue;
 // 答錯時無視我方所有防禦與減傷
 const flatSta = (battle.buffs && battle.buffs.staFlatTurns > 0) ? (battle.buffs.staFlatBonus || 5) : 0;
 let dmg = isWrongAnswer
-? Math.max(1, Math.round(enemy.atk))
-: Math.max(1, Math.round(enemy.atk - (st.sta + flatSta) * 0.25) - mods.tough);
+? Math.max(1, Math.round(enemy.atk * 2))
+: Math.max(1, Math.round(enemy.atk * 2 - (st.sta + flatSta)) - mods.tough);
 
 
 if (!isWrongAnswer && enemy.weakenTurns > 0) {
