@@ -1708,7 +1708,7 @@ agi: Math.max(4, Math.round(basePower * 0.18)),
 alive: true, isBoss: true, weakenTurns: 0, stunTurns: 0, armorBreakTurns: 0
 });
 } else {
-const count = randInt(1, 3);
+const count = battle.missionIndex <= 1 ? 1 : battle.missionIndex <= 3 ? randInt(1, 2) : randInt(1, 3);
 for (let i = 0; i < count; i++) {
 const t = ENEMY_TEMPLATES[Math.floor(Math.random() * ENEMY_TEMPLATES.length)];
 const hp = Math.round(basePower * 0.9 * t.mult.hp);
@@ -2962,9 +2962,11 @@ return;
 }
 
 
-// 決定哪些敵人攻擊（一般 80%，若答錯則保證至少 1 名敵人攻擊）
-let attackers = aliveEnemies.filter(() => Math.random() < 0.8);
-if (isWrongAnswer && attackers.length === 0) {
+// 決定哪些敵人攻擊（多於 1 隻怪時每隻 50% 出手，且保證至少 1 隻攻擊）
+let attackers = aliveEnemies.length > 1
+? aliveEnemies.filter(() => Math.random() < 0.5)
+: [...aliveEnemies];
+if (attackers.length === 0) {
 attackers = [aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)]];
 }
 
@@ -2974,7 +2976,7 @@ if (battle.allyHp <= 0) break;
 const unitEl = document.getElementById(`enemy-unit-${idx}`);
 
 
-if (!isWrongAnswer && enemy.stunTurns > 0) {
+if (enemy.stunTurns > 0) {
 enemy.stunTurns--;
 const stunTag = student.hero === '蜘蛛俠' ? '🕸️蛛網束縛 無法行動'
 : student.hero === '浩克' ? '💥震地暈眩 無法行動'
@@ -3002,7 +3004,7 @@ setTimeout(() => unitEl.classList.remove('rush-enemy'), 260);
 await sleep(160);
 
 
-if (!isWrongAnswer) {
+{
 if (battle.buffs && battle.buffs.guaranteedDodgeHits > 0) {
 battle.buffs.guaranteedDodgeHits--;
 updateBattleBars();
@@ -3075,27 +3077,26 @@ continue;
 }
 
 
-// 答錯時無視我方所有防禦與減傷
+// 正常計算敵方攻擊傷害（小怪攻擊力 ÷ 2，Boss 不除 2；答錯亦為普通攻擊，不再破防）
 const flatSta = (battle.buffs && battle.buffs.staFlatTurns > 0) ? (battle.buffs.staFlatBonus || 5) : 0;
-let dmg = isWrongAnswer
-? Math.max(1, Math.round(enemy.atk * 2))
-: Math.max(1, Math.round(enemy.atk * 2 - (st.sta + flatSta)) - mods.tough);
+const effEnemyAtk = enemy.isBoss ? enemy.atk : (enemy.atk / 2);
+let dmg = Math.max(1, Math.round(effEnemyAtk * 2 - (st.sta + flatSta)) - mods.tough);
 
 
-if (!isWrongAnswer && enemy.weakenTurns > 0) {
+if (enemy.weakenTurns > 0) {
 dmg = Math.max(1, dmg - 5);
 enemy.weakenTurns--;
 showPassiveTag('💫震盪 敵傷-5');
 }
-if (!isWrongAnswer && battle.buffs && battle.buffs.shieldTurns > 0) {
+if (battle.buffs && battle.buffs.shieldTurns > 0) {
 dmg = Math.max(1, Math.round(dmg * (1 - battle.buffs.shieldPct / 100)));
 showPassiveTag(`🛡️護盾減傷 -${battle.buffs.shieldPct}%`);
 }
 dmg = Math.max(1, dmg);
 
 
-// 保護盾優先吸收傷害（非答錯破防攻擊）
-if (!isWrongAnswer && battle.buffs && battle.buffs.shieldHp > 0) {
+// 保護盾優先吸收傷害
+if (battle.buffs && battle.buffs.shieldHp > 0) {
 const absorbed = Math.min(battle.buffs.shieldHp, dmg);
 battle.buffs.shieldHp -= absorbed;
 dmg -= absorbed;
@@ -3111,9 +3112,8 @@ updateBattleBars();
 const allyBox = document.getElementById('ally-box');
 allyBox.classList.add('shake-anim');
 setTimeout(() => allyBox.classList.remove('shake-anim'), 400);
-if (isWrongAnswer) showPassiveTag('💔答錯 破防反擊');
 showComicSFX(`-${dmg}`);
-setBattleLog(`💥 【${enemy.name}】攻擊造成 ${dmg} 點${isWrongAnswer ? '破防' : ''}傷害！`);
+setBattleLog(`💥 【${enemy.name}】攻擊造成 ${dmg} 點傷害！`);
 } else {
 updateBattleBars();
 showComicSFX('BLOCK!');
@@ -3122,7 +3122,7 @@ setBattleLog(`🛡️ 保護盾完全抵擋了【${enemy.name}】的攻擊！（
 
 
 // 反擊（蜘蛛感應必中反擊 80% 優先，否則檢查反擊詞彙 60%）
-if (!isWrongAnswer && battle.allyHp > 0) {
+if (battle.allyHp > 0) {
 const useSenseCounter = battle.buffs && battle.buffs.guaranteeCounter > 0;
 if (useSenseCounter || (mods.counter > 0 && Math.random() * 100 < mods.counter)) {
 if (useSenseCounter) battle.buffs.guaranteeCounter--;
@@ -3568,7 +3568,7 @@ const q = quiz.q;
 if (simpN !== q.ansN || simpD !== q.ansD) {
 // 答錯處理：紀錄動態難度錯誤 + 敵人破防反擊
 battle.quizDiff.hadErrorThisQ = true;
-setBattleLog('❌ 計算有誤！敵人趁機發動破防攻擊！');
+setBattleLog('❌ 計算有誤！敵人趁機發動攻擊！');
 await executeEnemyTurn(true);
 return;
 }
